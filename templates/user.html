@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DermAI Agent - User Interface</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar user-theme">
+        <div class="sidebar-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="M9 12l2 2 4-4"></path>
+            </svg>
+            DermAI Agent
+        </div>
+        <ul class="sidebar-menu">
+            <!-- Empty Dashboard link (non-active by default per user image) -->
+            <li><a href="#" data-target="dashboard-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Dashboard
+            </a></li>
+            <li><a href="#" class="active" data-target="new-diagnosis-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> New Diagnosis
+            </a></li>
+            <li><a href="#" data-target="patients-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Patients
+            </a></li>
+            <li><a href="#" data-target="history-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> History
+            </a></li>
+            <li><a href="#" data-target="reports-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Reports
+            </a></li>
+            <li><a href="#" data-target="profile-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profile
+            </a></li>
+            <li><a href="#" data-target="settings-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Settings
+            </a></li>
+            <li style="margin-top:20px"><a href="#" data-target="logout-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> Logout
+            </a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <h4>Secure & Private</h4>
+            <p>Your data is encrypted and protected</p>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <nav class="top-nav">
+            <div class="top-nav-title">
+                <!-- Removed static h1, using view-specific headers -->
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/1x1.png" style="height:1px;"> <!-- Spacer -->
+            </div>
+            <div class="top-nav-right">
+                <div class="user-profile">
+                    <div class="user-info">
+                        <div class="user-name">User</div>
+                        <div class="user-role" style="display: none;"></div>
+                    </div>
+                    <div style="width: 32px; height: 32px; background: #1e40af; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold;">{{ user.name[0].upper() if user.name else 'U' }}</div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="page-container" id="all-views-container">
+            
+            <!-- VIEW: DASHBOARD -->
+            <div class="view-content" id="dashboard-content" style="display:none;">
+              <style>
+                .db-welcome { margin-bottom:24px; }
+                .db-welcome .db-sub { font-size:.9rem; color:#64748b; margin-top:2px; }
+                .db-welcome .db-name { font-size:1.8rem; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px; }
+
+                .db-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+                .db-stat { background:#fff; border-radius:14px; padding:20px; box-shadow:0 2px 12px rgba(0,0,0,.06); display:flex; align-items:center; gap:16px; }
+                .db-stat-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+                .db-stat-icon.purple { background:#ede9fe; color:#7c3aed; }
+                .db-stat-icon.green  { background:#d1fae5; color:#059669; }
+                .db-stat-icon.orange { background:#ffedd5; color:#ea580c; }
+                .db-stat-icon.blue   { background:#dbeafe; color:#2563eb; }
+                .db-stat-val { font-size:1.5rem; font-weight:800; color:#0f172a; line-height:1; }
+                .db-stat-label { font-size:.8rem; font-weight:600; color:#0f172a; margin-bottom:2px; }
+                .db-stat-sub { font-size:.75rem; color:#64748b; }
+
+                .db-main { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+                .db-card { background:#fff; border-radius:14px; padding:22px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+                .db-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+                .db-card-title { font-size:1rem; font-weight:700; color:#0f172a; }
+                .db-view-all { font-size:.82rem; color:#4f46e5; font-weight:600; cursor:pointer; text-decoration:none; }
+                .db-view-all:hover { text-decoration:underline; }
+
+                .db-diag-item { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid #f1f5f9; cursor:pointer; transition:background .15s; border-radius:8px; padding:10px 8px; }
+                .db-diag-item:hover { background:#f8fafc; }
+                .db-diag-item:last-child { border-bottom:none; }
+                .db-diag-img { width:48px; height:48px; border-radius:10px; object-fit:cover; background:#f1f5f9; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:.7rem; overflow:hidden; }
+                .db-diag-img img { width:100%; height:100%; object-fit:cover; }
+                .db-diag-info { flex:1; }
+                .db-diag-name { font-size:.9rem; font-weight:600; color:#0f172a; }
+                .db-diag-date { font-size:.78rem; color:#94a3b8; margin-top:2px; }
+                .db-diag-conf { font-size:.8rem; font-weight:600; padding:3px 10px; border-radius:20px; white-space:nowrap; }
+                .db-diag-conf.green  { background:#d1fae5; color:#059669; }
+                .db-diag-conf.orange { background:#ffedd5; color:#ea580c; }
+                .db-diag-conf.red    { background:#fee2e2; color:#dc2626; }
+                .db-diag-arrow { color:#cbd5e1; font-size:1rem; }
+
+                /* Health summary */
+                .db-health-score { display:flex; align-items:center; gap:24px; margin-bottom:20px; }
+                .db-score-ring { position:relative; width:110px; height:110px; flex-shrink:0; }
+                .db-score-ring svg { width:110px; height:110px; transform:rotate(-90deg); }
+                .db-score-ring .ring-bg  { fill:none; stroke:#e0e7ff; stroke-width:10; }
+                .db-score-ring .ring-val { fill:none; stroke:#4f46e5; stroke-width:10; stroke-linecap:round; stroke-dasharray:314; stroke-dashoffset:50; transition:stroke-dashoffset 1.2s ease; }
+                .db-score-text { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+                .db-score-pct { font-size:1.3rem; font-weight:800; color:#0f172a; }
+                .db-score-lbl { font-size:.6rem; color:#64748b; text-align:center; line-height:1.2; }
+                .db-health-tips { display:flex; flex-direction:column; gap:12px; flex:1; }
+                .db-tip { display:flex; align-items:flex-start; gap:10px; }
+                .db-tip-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:1rem; }
+                .db-tip-title { font-size:.85rem; font-weight:600; color:#0f172a; }
+                .db-tip-sub { font-size:.78rem; color:#64748b; }
+
+                /* Reminders */
+                .db-reminder { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid #f1f5f9; }
+                .db-reminder:last-child { border-bottom:none; }
+                .db-rem-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+                .db-rem-info { flex:1; }
+                .db-rem-title { font-size:.88rem; font-weight:600; color:#0f172a; }
+                .db-rem-sub { font-size:.78rem; color:#94a3b8; }
+                .db-rem-right { text-align:right; }
+                .db-rem-date { font-size:.82rem; font-weight:600; color:#0f172a; }
+                .db-rem-tag { font-size:.72rem; font-weight:600; padding:2px 8px; border-radius:20px; margin-top:3px; display:inline-block; }
+                .db-rem-tag.upcoming { background:#ede9fe; color:#7c3aed; }
+                .db-rem-tag.reminder { background:#ffedd5; color:#ea580c; }
+
+                /* Quick actions */
+                .db-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+                .db-action { background:#fff; border-radius:14px; padding:20px 14px; box-shadow:0 2px 12px rgba(0,0,0,.06); display:flex; flex-direction:column; align-items:center; gap:10px; cursor:pointer; transition:box-shadow .2s,transform .15s; border:2px solid transparent; }
+                .db-action:hover { box-shadow:0 6px 24px rgba(79,70,229,.15); transform:translateY(-2px); border-color:#e0e7ff; }
+                .db-action-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; }
+                .db-action-label { font-size:.85rem; font-weight:700; color:#0f172a; text-align:center; }
+                .db-action-sub { font-size:.75rem; color:#64748b; text-align:center; line-height:1.3; }
+              </style>
+
+              <!-- Welcome -->
+              <div class="db-welcome">
+                <div class="db-sub">Welcome back,</div>
+                <div class="db-name" id="db-username">Loading... 👋</div>
+                <div class="db-sub">Here's your health overview</div>
+              </div>
+
+              <!-- Stat cards -->
+              <div class="db-stats">
+                <div class="db-stat">
+                  <div class="db-stat-icon purple">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                  </div>
+                  <div>
+                    <div class="db-stat-label">Total Diagnoses</div>
+                    <div class="db-stat-val" id="db-total-diag">0</div>
+                    <div class="db-stat-sub">View your diagnosis history</div>
+                  </div>
+                </div>
+                <div class="db-stat">
+                  <div class="db-stat-icon green">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  </div>
+                  <div>
+                    <div class="db-stat-label">Last Diagnosis</div>
+                    <div class="db-stat-val" id="db-last-diag" style="font-size:1rem;margin-top:2px">—</div>
+                    <div class="db-stat-sub">Keep track of your skin health</div>
+                  </div>
+                </div>
+                <div class="db-stat">
+                  <div class="db-stat-icon orange">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                  </div>
+                  <div>
+                    <div class="db-stat-label">Reports Generated</div>
+                    <div class="db-stat-val" id="db-reports">0</div>
+                    <div class="db-stat-sub">Download your reports</div>
+                  </div>
+                </div>
+                <div class="db-stat">
+                  <div class="db-stat-icon blue">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </div>
+                  <div>
+                    <div class="db-stat-label">Profile Status</div>
+                    <div class="db-stat-val" id="db-profile-status" style="font-size:1rem;color:#059669;margin-top:2px">Complete</div>
+                    <div class="db-stat-sub">Your profile is up to date</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Main 2-col -->
+              <div class="db-main">
+
+                <!-- Recent Diagnoses -->
+                <div class="db-card">
+                  <div class="db-card-header">
+                    <span class="db-card-title">Recent Diagnoses</span>
+                    <a class="db-view-all" onclick="document.querySelector('.sidebar-menu a[data-target=\'history-content\']').click()">View All</a>
+                  </div>
+                  <div id="db-recent-list">
+                    <div style="text-align:center;color:#94a3b8;padding:30px 0;font-size:.9rem">No diagnoses yet. Run your first diagnosis!</div>
+                  </div>
+                </div>
+
+                <!-- Right col -->
+                <div style="display:flex;flex-direction:column;gap:20px;">
+
+                  <!-- Health Summary -->
+                  <div class="db-card">
+                    <div class="db-card-header">
+                      <span class="db-card-title">Health Summary</span>
+                    </div>
+                    <div class="db-health-score">
+                      <div class="db-score-ring">
+                        <svg viewBox="0 0 120 120">
+                          <circle class="ring-bg"  cx="60" cy="60" r="50"/>
+                          <circle class="ring-val" id="db-ring" cx="60" cy="60" r="50"/>
+                        </svg>
+                        <div class="db-score-text">
+                          <span class="db-score-pct" id="db-score-pct">—</span>
+                          <span class="db-score-lbl">Overall Skin<br>Health Score</span>
+                        </div>
+                      </div>
+                      <div class="db-health-tips" id="db-health-tips">
+                        <div class="db-tip">
+                          <div class="db-tip-icon" style="background:#d1fae5">✅</div>
+                          <div><div class="db-tip-title">No Critical Conditions</div><div class="db-tip-sub">Great! No critical conditions detected.</div></div>
+                        </div>
+                        <div class="db-tip">
+                          <div class="db-tip-icon" style="background:#dbeafe">💧</div>
+                          <div><div class="db-tip-title">Regular Check-ups</div><div class="db-tip-sub">Keep monitoring your skin health.</div></div>
+                        </div>
+                        <div class="db-tip">
+                          <div class="db-tip-icon" style="background:#fef3c7">☀️</div>
+                          <div><div class="db-tip-title">Sun Protection</div><div class="db-tip-sub">Use SPF 30+ for better protection.</div></div>
+                        </div>
+                        <div class="db-tip">
+                          <div class="db-tip-icon" style="background:#ffedd5">🧴</div>
+                          <div><div class="db-tip-title">Stay Hydrated</div><div class="db-tip-sub">Drink plenty of water daily.</div></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Upcoming Reminders -->
+                  <div class="db-card">
+                    <div class="db-card-header">
+                      <span class="db-card-title">Upcoming Reminders</span>
+                      <a class="db-view-all" href="#">View All</a>
+                    </div>
+                    <div id="db-reminders">
+                      <div class="db-reminder">
+                        <div class="db-rem-icon" style="background:#ede9fe">📅</div>
+                        <div class="db-rem-info"><div class="db-rem-title">Follow-up Check</div><div class="db-rem-sub" id="db-rem1-sub">For latest diagnosis</div></div>
+                        <div class="db-rem-right"><div class="db-rem-date" id="db-rem1-date">—</div><span class="db-rem-tag upcoming">Upcoming</span></div>
+                      </div>
+                      <div class="db-reminder">
+                        <div class="db-rem-icon" style="background:#d1fae5">🩺</div>
+                        <div class="db-rem-info"><div class="db-rem-title">Skin Health Check</div><div class="db-rem-sub">Regular skin analysis</div></div>
+                        <div class="db-rem-right"><div class="db-rem-date">07 May 2026</div><span class="db-rem-tag upcoming">Upcoming</span></div>
+                      </div>
+                      <div class="db-reminder">
+                        <div class="db-rem-icon" style="background:#ffedd5">☀️</div>
+                        <div class="db-rem-info"><div class="db-rem-title">Sun Protection Reminder</div><div class="db-rem-sub">Use sunscreen daily</div></div>
+                        <div class="db-rem-right"><div class="db-rem-date">Every Day</div><span class="db-rem-tag reminder">Reminder</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Quick Actions -->
+              <div class="db-card" style="margin-bottom:0">
+                <div class="db-card-header" style="margin-bottom:16px">
+                  <span class="db-card-title">Quick Actions</span>
+                </div>
+                <div class="db-actions">
+                  <div class="db-action" onclick="document.querySelector('.sidebar-menu a[data-target=new-diagnosis-content]').click()">
+                    <div class="db-action-icon" style="background:#ede9fe;color:#7c3aed">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                    </div>
+                    <div class="db-action-label">New Diagnosis</div>
+                    <div class="db-action-sub">Analyze new skin condition</div>
+                  </div>
+                  <div class="db-action" onclick="document.querySelector('.sidebar-menu a[data-target=history-content]').click()">
+                    <div class="db-action-icon" style="background:#d1fae5;color:#059669">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="db-action-label">View History</div>
+                    <div class="db-action-sub">See your past diagnoses</div>
+                  </div>
+                  <div class="db-action" onclick="document.querySelector('.sidebar-menu a[data-target=reports-content]').click()">
+                    <div class="db-action-icon" style="background:#ffedd5;color:#ea580c">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="db-action-label">Generate Report</div>
+                    <div class="db-action-sub">Create and download health reports</div>
+                  </div>
+                  <div class="db-action" onclick="document.querySelector('.sidebar-menu a[data-target=profile-content]').click()">
+                    <div class="db-action-icon" style="background:#dbeafe;color:#2563eb">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                    <div class="db-action-label">Update Profile</div>
+                    <div class="db-action-sub">Update your profile information</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- VIEW: NEW DIAGNOSIS (Original) -->
+            <div class="view-content" id="new-diagnosis-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">New Dermatological Diagnosis</h2>
+                        <span style="font-size: 0.85rem; color: var(--text-light);">Upload image and patient details to get AI-powered diagnosis with medical explanation.</span>
+                    </div>
+
+                    <div class="user-grid">
+                        <!-- Step 1: Upload Image -->
+                        <div class="step-card">
+                            <h3 class="step-header">1. Upload Skin Lesion Image</h3>
+                            <div class="upload-area" id="dropZone">
+                                <svg class="upload-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <div class="upload-text">Drag & Drop Image Here</div>
+                                <div class="upload-hint">Supported: JPG, PNG, JPEG</div>
+                                <input type="file" id="fileInput" hidden accept="image/*">
+                                <div id="imagePreviewContainer">
+                                    <img id="previewImage" src="" alt="Preview">
+                                    <button id="changeImageBtn" class="btn btn-outline" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: white;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> Change Image
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Patient Information -->
+                        <div class="step-card">
+                            <h3 class="step-header">2. Patient Information</h3>
+                            <form id="patientForm">
+                                <div class="form-group">
+                                    <label>Patient Name</label>
+                                    <input type="text" class="form-control" id="patName" placeholder="Enter patient name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Patient ID</label>
+                                    <input type="text" class="form-control" id="patIdDisplay" value="Auto-generated" readonly style="color:#94a3b8">
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="form-group">
+                                        <label>Age</label>
+                                        <input type="number" class="form-control" id="patAge" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Gender</label>
+                                        <select class="form-control" id="patGender"><option>Female</option><option>Male</option></select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Symptoms</label>
+                                    <input type="text" class="form-control" id="patSymptoms" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>History</label>
+                                    <select class="form-control"><option>Yes</option><option>No</option></select>
+                                </div>
+                                <button type="button" id="analyzeBtn" class="btn btn-primary" style="margin-top: auto;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Analyze Now
+                                </button>
+                            </form>
+                        </div>
+
+                    </div><!-- end user-grid (steps 1+2) -->
+
+                    <!-- ═══ AI ANALYSIS RESULTS (shown after analyze) ═══ -->
+                    <div id="aiResultsPanel" style="display:none;margin-top:28px;">
+
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+                            <h2 style="font-size:1.3rem;font-weight:800;color:var(--secondary)">AI Analysis &amp; Prediction Results</h2>
+                            <button class="btn btn-outline" id="downloadReportBtn" style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Download Report
+                            </button>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+                            <!-- ── LEFT COL ── -->
+                            <div style="display:flex;flex-direction:column;gap:20px;">
+
+                                <!-- Prediction Result card -->
+                                <div class="card" style="padding:22px;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                        <span style="font-size:.85rem;font-weight:600;color:var(--text-light)">Prediction Result</span>
+                                        <span class="tag" id="predRisk" style="font-size:.75rem">High Risk</span>
+                                    </div>
+                                    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:10px;">
+                                        <div id="predDisease" style="font-size:2rem;font-weight:800;color:var(--secondary)">—</div>
+                                        <div id="confidenceText" style="font-size:1.6rem;font-weight:700;color:var(--primary)">0%</div>
+                                    </div>
+                                    <!-- confidence bar -->
+                                    <div style="background:#e2e8f0;border-radius:6px;height:8px;margin-bottom:18px;overflow:hidden;">
+                                        <div id="confBar" style="height:100%;border-radius:6px;background:var(--primary);width:0%;transition:width 1.2s ease;"></div>
+                                    </div>
+                                    <!-- probability bar chart -->
+                                    <div style="font-size:.8rem;font-weight:600;color:var(--text-light);margin-bottom:10px;">Probability Distribution</div>
+                                    <div id="probBars" style="display:flex;flex-direction:column;gap:7px;"></div>
+                                </div>
+
+                                <!-- Explainable AI Visualization (bottom-left) -->
+                                <div class="card" style="padding:22px;">
+                                    <div style="font-size:.95rem;font-weight:700;color:var(--secondary);margin-bottom:4px;">Explainable AI Visualization</div>
+                                    <div style="font-size:.78rem;color:var(--text-light);margin-bottom:14px;">Grad-CAM Saliency Map</div>
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                        <div>
+                                            <div style="font-size:.78rem;color:var(--text-light);text-align:center;margin-bottom:6px;">Before</div>
+                                            <div id="vizBefore" style="border-radius:10px;overflow:hidden;background:#f1f5f9;height:130px;display:flex;align-items:center;justify-content:center;">
+                                                <img id="vizBeforeImg" src="" alt="Original" style="width:100%;height:100%;object-fit:cover;display:none;">
+                                                <span id="vizBeforePlaceholder" style="font-size:.75rem;color:#94a3b8">Upload image first</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size:.78rem;color:var(--text-light);text-align:center;margin-bottom:6px;">After (Heatmap)</div>
+                                            <div id="vizAfter" style="border-radius:10px;overflow:hidden;background:#f1f5f9;height:130px;display:flex;align-items:center;justify-content:center;position:relative;">
+                                                <img id="vizAfterImg" src="" alt="Heatmap" style="width:100%;height:100%;object-fit:cover;display:none;">
+                                                <canvas id="heatmapCanvas" style="position:absolute;inset:0;width:100%;height:100%;border-radius:10px;display:none;"></canvas>
+                                                <span id="vizAfterPlaceholder" style="font-size:.75rem;color:#94a3b8">Heatmap generated after analysis</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- ── RIGHT COL ── -->
+                            <div style="display:flex;flex-direction:column;gap:20px;">
+
+                                <!-- AI Explanation & Recommendations -->
+                                <div class="card" style="padding:22px;">
+                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                        <span style="font-size:.95rem;font-weight:700;color:var(--secondary)">AI Explanation &amp; Recommendations</span>
+                                    </div>
+
+                                    <div style="margin-bottom:14px;">
+                                        <div style="font-size:.88rem;font-weight:700;color:var(--secondary);margin-bottom:6px;">Overview</div>
+                                        <p id="explanationText" style="font-size:.85rem;color:var(--text-main);line-height:1.65;"></p>
+                                    </div>
+
+                                    <div style="margin-bottom:14px;">
+                                        <div style="font-size:.88rem;font-weight:700;color:var(--secondary);margin-bottom:8px;">Diagnosis Details</div>
+                                        <ul id="diagDetailsList" style="list-style:none;padding:0;display:flex;flex-direction:column;gap:6px;"></ul>
+                                    </div>
+
+                                    <div>
+                                        <div style="font-size:.88rem;font-weight:700;color:var(--secondary);margin-bottom:8px;">Key Risk Factors</div>
+                                        <div id="riskFactors" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Treatment Plan -->
+                                <div class="card" style="padding:22px;">
+                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                        <span style="font-size:.95rem;font-weight:700;color:var(--secondary)">Recommended Treatment Plan</span>
+                                    </div>
+                                    <ul id="suggestionList" style="list-style:none;padding:0;display:flex;flex-direction:column;gap:10px;"></ul>
+
+                                    <div style="margin-top:16px;padding:12px;background:#f0fdf4;border-radius:10px;border-left:3px solid #10b981;">
+                                        <div style="font-size:.82rem;font-weight:700;color:#065f46;margin-bottom:4px;">Next Steps</div>
+                                        <div id="nextSteps" style="font-size:.82rem;color:#047857;line-height:1.5;"></div>
+                                    </div>
+
+                                    <div style="margin-top:14px;padding:12px;background:#fef3c7;border-radius:10px;border-left:3px solid #f59e0b;display:flex;gap:10px;align-items:flex-start;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                        <span style="font-size:.78rem;color:#92400e;line-height:1.5;">This AI system is a decision-support tool and not a substitute for professional medical advice. Always consult a qualified dermatologist.</span>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div><!-- end aiResultsPanel -->
+
+                </div><!-- end card -->
+            </div><!-- end new-diagnosis-content -->
+
+            <!-- VIEW: PATIENTS -->
+            <div class="view-content" id="patients-content" style="display: none;">
+                <div class="page-header">
+                    <div><h2>Patients</h2><p>View and manage your patients.</p></div>
+                    <button class="btn btn-primary">+ Add Patient</button>
+                </div>
+                <div class="card">
+                    <div class="toolbar">
+                        <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input type="text" placeholder="Search patients..."></div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>ID</th><th>Full Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Last Visit</th><th>Actions</th></tr></thead>
+                            <tbody id="patientsTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination"><span class="page-info">Showing 1 to 5 of 25 patients</span><div class="page-numbers"><button><</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>></button></div></div>
+                </div>
+            </div>
+
+            <!-- VIEW: HISTORY -->
+            <div class="view-content" id="history-content" style="display: none;">
+                <div class="page-header">
+                    <div><h2>History</h2><p>View your past diagnoses and predictions.</p></div>
+                </div>
+                <div class="card">
+                    <div class="toolbar">
+                        <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input type="text" placeholder="Search history..."></div>
+                        <button class="btn btn-outline" style="display: flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg> Filter</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>ID</th><th>Patient</th><th>Image</th><th>Predicted Disease</th><th>Confidence</th><th>Date</th><th>Actions</th></tr></thead>
+                            <tbody id="historyTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination"><span class="page-info">Showing 1 to 5 of 48 History records</span><div class="page-numbers"><button><</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>></button></div></div>
+                </div>
+            </div>
+
+            <!-- VIEW: REPORTS — Generate Report -->
+            <div class="view-content" id="reports-content" style="display:none;">
+              <div class="page-header">
+                <div>
+                  <h2>Generate Report</h2>
+                  <p style="color:var(--text-light);font-size:.9rem">Create and download a detailed report for your diagnosis</p>
+                </div>
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:24px;align-items:start;">
+
+                <!-- LEFT: Report Details form -->
+                <div class="card" style="padding:28px;">
+                  <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:20px">Report Details</h3>
+
+                  <!-- Select Patient -->
+                  <div style="margin-bottom:18px">
+                    <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-light);margin-bottom:8px">Select Patient</label>
+                    <select id="rptPatientSelect" class="form-control" style="padding:12px 14px;border-radius:10px;font-size:.9rem">
+                      <option value="">— Select a patient —</option>
+                    </select>
+                  </div>
+
+                  <!-- Select Diagnosis -->
+                  <div style="margin-bottom:18px">
+                    <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-light);margin-bottom:8px">Select Diagnosis</label>
+                    <select id="rptDiagSelect" class="form-control" style="padding:12px 14px;border-radius:10px;font-size:.9rem">
+                      <option value="">— Select a diagnosis —</option>
+                    </select>
+                  </div>
+
+                  <!-- Report Type -->
+                  <div style="margin-bottom:18px">
+                    <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-light);margin-bottom:8px">Report Type</label>
+                    <select id="rptType" class="form-control" style="padding:12px 14px;border-radius:10px;font-size:.9rem">
+                      <option>Detailed Report</option>
+                      <option>Summary Report</option>
+                      <option>Clinical Report</option>
+                    </select>
+                  </div>
+
+                  <!-- Include Sections -->
+                  <div style="margin-bottom:18px">
+                    <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-light);margin-bottom:10px">Include Sections</label>
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                      <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;cursor:pointer"><input type="checkbox" id="rptSecPatient" checked> Patient Information</label>
+                      <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;cursor:pointer"><input type="checkbox" id="rptSecDiag" checked> Diagnosis Details</label>
+                      <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;cursor:pointer"><input type="checkbox" id="rptSecAI" checked> AI Analysis Results</label>
+                      <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;cursor:pointer"><input type="checkbox" id="rptSecRec" checked> Recommendations</label>
+                      <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;cursor:pointer"><input type="checkbox" id="rptSecPrec" checked> Precautions</label>
+                      <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;cursor:pointer"><input type="checkbox" id="rptSecNotes" checked> Doctor Notes</label>
+                    </div>
+                  </div>
+
+                  <!-- Additional Notes -->
+                  <div style="margin-bottom:22px">
+                    <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-light);margin-bottom:8px">Additional Notes (Optional)</label>
+                    <textarea id="rptNotes" maxlength="300" placeholder="Add any additional notes for the report..." style="width:100%;padding:12px;border:1px solid var(--border-color);border-radius:10px;font-size:.88rem;resize:vertical;min-height:90px;font-family:inherit"></textarea>
+                    <div style="text-align:right;font-size:.75rem;color:var(--text-light)" id="rptNotesCount">0/300</div>
+                  </div>
+
+                  <button id="generateReportBtn" class="btn btn-primary" style="width:100%;padding:14px;font-size:.95rem;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Generate Report
+                  </button>
+                </div>
+
+                <!-- RIGHT: Report Preview -->
+                <div class="card" style="padding:28px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                    <h3 style="font-size:1rem;font-weight:700;color:var(--secondary)">Report Preview</h3>
+                    <button id="downloadPdfBtn" class="btn btn-outline" style="display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--primary);border-color:var(--primary)">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      Download PDF
+                    </button>
+                  </div>
+
+                  <!-- Preview content -->
+                  <div id="reportPreview" style="border:1px solid var(--border-color);border-radius:12px;padding:24px;background:#fafbff;min-height:400px;font-size:.85rem;line-height:1.6">
+
+                    <!-- Header -->
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--primary)">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <div style="width:36px;height:36px;background:#e0e7ff;border-radius:8px;display:flex;align-items:center;justify-content:center">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                        </div>
+                        <div><div style="font-size:1rem;font-weight:800;color:var(--secondary)">Derm<span style="color:var(--primary)">AI</span></div><div style="font-size:.7rem;color:var(--text-light)">AI-Powered Dermatology</div></div>
+                      </div>
+                      <div style="text-align:right">
+                        <div style="font-weight:700;color:var(--secondary)">Patient Report</div>
+                        <div style="color:var(--text-light);font-size:.78rem" id="rptGenDate">Generated on: —</div>
+                      </div>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div id="rptEmptyState" style="text-align:center;padding:60px 20px;color:var(--text-light)">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="margin-bottom:12px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                      <p>Select a patient and diagnosis to preview the report</p>
+                    </div>
+
+                    <!-- Report body (hidden until generated) -->
+                    <div id="rptBody" style="display:none">
+
+                      <!-- 1. Patient Info -->
+                      <div id="rptSec1" style="margin-bottom:18px">
+                        <div style="font-size:.9rem;font-weight:700;color:var(--primary);margin-bottom:10px">1. Patient Information</div>
+                        <table style="width:100%;border-collapse:collapse;font-size:.83rem">
+                          <tr><td style="padding:5px 0;color:var(--text-light);width:120px">Name</td><td style="padding:5px 0">: <span id="rptPName">—</span></td></tr>
+                          <tr><td style="padding:5px 0;color:var(--text-light)">Patient ID</td><td style="padding:5px 0">: <span id="rptPID">—</span></td></tr>
+                          <tr><td style="padding:5px 0;color:var(--text-light)">Age / Gender</td><td style="padding:5px 0">: <span id="rptPAge">—</span></td></tr>
+                          <tr><td style="padding:5px 0;color:var(--text-light)">Report Date</td><td style="padding:5px 0">: <span id="rptPDate">—</span></td></tr>
+                        </table>
+                      </div>
+
+                      <!-- 2. Diagnosis Details -->
+                      <div id="rptSec2" style="margin-bottom:18px">
+                        <div style="font-size:.9rem;font-weight:700;color:var(--primary);margin-bottom:10px">2. Diagnosis Details</div>
+                        <div style="display:flex;gap:14px;align-items:flex-start">
+                          <img id="rptDiagImg" src="" alt="" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--border-color);display:none">
+                          <table style="flex:1;border-collapse:collapse;font-size:.83rem">
+                            <tr><td style="padding:4px 0;color:var(--text-light);width:140px">Diagnosis</td><td style="padding:4px 0">: <span id="rptDDisease" style="font-weight:600">—</span></td></tr>
+                            <tr><td style="padding:4px 0;color:var(--text-light)">Detected On</td><td style="padding:4px 0">: <span id="rptDDate">—</span></td></tr>
+                            <tr><td style="padding:4px 0;color:var(--text-light)">AI Confidence Score</td><td style="padding:4px 0">: <span id="rptDConf" style="font-weight:700;color:#10b981">—</span></td></tr>
+                            <tr><td style="padding:4px 0;color:var(--text-light)">Severity Level</td><td style="padding:4px 0">: <span id="rptDRisk" style="font-weight:600">—</span></td></tr>
+                          </table>
+                        </div>
+                      </div>
+
+                      <!-- 3. AI Analysis -->
+                      <div id="rptSec3" style="margin-bottom:18px">
+                        <div style="font-size:.9rem;font-weight:700;color:var(--primary);margin-bottom:8px">3. AI Analysis Results</div>
+                        <p id="rptAIText" style="color:var(--text-main);font-size:.83rem;line-height:1.65"></p>
+                      </div>
+
+                      <!-- 4. Recommendations -->
+                      <div id="rptSec4" style="margin-bottom:18px">
+                        <div style="font-size:.9rem;font-weight:700;color:var(--primary);margin-bottom:8px">4. Recommendations</div>
+                        <ul id="rptRecList" style="list-style:none;padding:0;display:flex;flex-direction:column;gap:5px"></ul>
+                      </div>
+
+                      <!-- 5. Precautions -->
+                      <div id="rptSec5" style="margin-bottom:18px">
+                        <div style="font-size:.9rem;font-weight:700;color:var(--primary);margin-bottom:8px">5. Precautions</div>
+                        <ul id="rptPrecList" style="list-style:none;padding:0;display:flex;flex-direction:column;gap:5px"></ul>
+                      </div>
+
+                      <!-- 6. Doctor Notes -->
+                      <div id="rptSec6" style="margin-bottom:18px">
+                        <div style="font-size:.9rem;font-weight:700;color:var(--primary);margin-bottom:8px">6. Doctor Notes</div>
+                        <div id="rptNotesPreview" style="background:#f0f4ff;border-radius:8px;padding:12px;font-size:.83rem;color:var(--text-main);line-height:1.6"></div>
+                      </div>
+
+                      <!-- Footer -->
+                      <div style="margin-top:20px;padding-top:12px;border-top:1px solid var(--border-color);font-size:.75rem;color:var(--text-light);font-style:italic">
+                        This is an AI-generated report. Please consult a dermatologist for medical advice.
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- VIEW: PROFILE -->
+            <div class="view-content" id="profile-content" style="display: none;">
+                <div class="page-header"><div><h2>Profile</h2><p>View and manage your profile information.</p></div></div>
+                <div class="profile-grid">
+                    <div style="display: flex; flex-direction: column; gap: 24px;">
+                        <div class="card">
+                            <h3 style="margin-bottom: 20px; color: var(--secondary);">Profile Information</h3>
+                            <div class="form-group"><label>Full Name</label><input type="text" class="form-control" id="profileName"></div>
+                            <div class="form-group"><label>Email</label><input type="email" class="form-control" id="profileEmail" readonly></div>
+                            <div class="form-group"><label>Phone</label><input type="text" class="form-control" id="profilePhone"></div>
+                            <div class="form-group"><label>Role</label><input type="text" class="form-control" id="profileRole" readonly></div>
+                            <button class="btn btn-primary" id="saveProfileBtn">Save Changes</button>
+
+                        </div>
+                        <div class="card">
+                            <h3 style="margin-bottom: 20px; color: var(--secondary);">Account Security</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 4px;">Password</div>
+                                    <div style="font-weight: 500;">••••••••••••</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 4px;">Last Changed</div>
+                                    <div style="font-size: 0.85rem;">May 10, 2024 09:30 AM</div>
+                                </div>
+                                <button class="btn btn-outline" style="color: var(--primary); border-color: var(--primary);">Change Password</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card profile-pic-card">
+                        <h3 style="margin-bottom: 20px; color: var(--secondary);">Profile Picture</h3>
+                        <div class="profile-avatar">U</div>
+                        <button id="changePictureBtn" class="btn btn-outline" style="margin-bottom: 10px; width: 100%;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> Change Picture</button>
+                        <input type="file" id="profilePicInput" hidden accept="image/*">
+                        <span style="font-size: 0.75rem; color: var(--text-light);">JPG, PNG or GIF. Max size 2MB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: SETTINGS -->
+            <div class="view-content" id="settings-content" style="display: none;">
+                <div class="page-header"><div><h2>Settings</h2><p>Manage your account and application settings.</p></div></div>
+                <div class="card" style="padding: 0;">
+                    <div class="settings-grid">
+                        <div class="settings-sidebar">
+                            <div class="settings-tab active">General</div>
+                            <div class="settings-tab">Notifications</div>
+                            <div class="settings-tab">Security</div>
+                            <div class="settings-tab">AI Preferences</div>
+                            <div class="settings-tab">Display</div>
+                        </div>
+                        <div style="padding:30px 40px;">
+
+                            <!-- General -->
+                            <div class="settings-panel" data-tab="General">
+                                <h3 style="margin-bottom:24px;color:var(--secondary)">General Settings</h3>
+                                <div class="form-group" style="max-width:400px"><label>Language</label><select id="settingLang" class="form-control"><option>English</option><option>Spanish</option><option>French</option></select></div>
+                                <div class="form-group" style="max-width:400px"><label>Time Zone</label><select id="settingTZ" class="form-control"><option>(UTC-05:00) Eastern Time</option><option>(UTC+00:00) UTC</option><option>(UTC+05:30) IST</option></select></div>
+                                <div class="form-group" style="max-width:400px"><label>Date Format</label><select id="settingDateFmt" class="form-control"><option>MM/DD/YYYY</option><option>DD/MM/YYYY</option><option>YYYY-MM-DD</option></select></div>
+                                <div class="form-group" style="max-width:400px"><label>Items Per Page</label><select id="settingPerPage" class="form-control"><option>10</option><option>25</option><option>50</option></select></div>
+                                <button type="button" class="btn btn-primary" style="margin-top:10px">Save Changes</button>
+                            </div>
+
+                            <!-- Notifications -->
+                            <div class="settings-panel" data-tab="Notifications" style="display:none">
+                                <h3 style="margin-bottom:24px;color:var(--secondary)">Notification Settings</h3>
+                                <div class="form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="notifEmail" checked> Email notifications for new diagnoses</label></div>
+                                <div class="form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="notifHighRisk" checked> Alert for High Risk results</label></div>
+                                <div class="form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="notifWeekly"> Weekly summary report</label></div>
+                                <button type="button" class="btn btn-primary" style="margin-top:10px">Save Changes</button>
+                            </div>
+
+                            <!-- Security -->
+                            <div class="settings-panel" data-tab="Security" style="display:none">
+                                <h3 style="margin-bottom:24px;color:var(--secondary)">Security Settings</h3>
+                                <div class="form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="sec2FA"> Enable Two-Factor Authentication</label></div>
+                                <div class="form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="secLoginAlert" checked> Login alerts via email</label></div>
+                                <div class="form-group" style="max-width:400px"><label>Session Timeout (minutes)</label><select id="secTimeout" class="form-control"><option>30</option><option>60</option><option>120</option><option>Never</option></select></div>
+                                <button type="button" class="btn btn-primary" style="margin-top:10px">Save Changes</button>
+                            </div>
+
+                            <!-- AI Preferences -->
+                            <div class="settings-panel" data-tab="AI Preferences" style="display:none">
+                                <h3 style="margin-bottom:24px;color:var(--secondary)">AI Preferences</h3>
+                                <div class="form-group" style="max-width:400px"><label>Default Confidence Threshold</label><select id="aiThreshold" class="form-control"><option>70%</option><option>75%</option><option>80%</option><option>85%</option></select></div>
+                                <div class="form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="aiAutoSave" checked> Auto-save diagnosis results</label></div>
+                                <div class="form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="aiShowExplain" checked> Show medical explanation by default</label></div>
+                                <button type="button" class="btn btn-primary" style="margin-top:10px">Save Changes</button>
+                            </div>
+
+                            <!-- Display -->
+                            <div class="settings-panel" data-tab="Display" style="display:none">
+                                <h3 style="margin-bottom:24px;color:var(--secondary)">Display Settings</h3>
+                                <div class="form-group" style="max-width:400px"><label>Theme</label><select id="dispTheme" class="form-control"><option>Light</option><option>Dark</option><option>System</option></select></div>
+                                <div class="form-group" style="max-width:400px"><label>Font Size</label><select id="dispFont" class="form-control"><option>Small</option><option selected>Medium</option><option>Large</option></select></div>
+                                <div class="form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="dispCompact"> Compact table view</label></div>
+                                <button type="button" class="btn btn-primary" style="margin-top:10px">Save Changes</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: LOGOUT -->
+            <div class="view-content" id="logout-content" style="display: none;">
+                <div class="page-header"><div><h2>Logout</h2><p>You are about to log out from your account.</p></div></div>
+                <div class="card logout-box" style="margin-top: 50px;">
+                    <div class="logout-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></div>
+                    <h2 style="margin-bottom: 12px; color: var(--secondary);">Confirm Logout</h2>
+                    <p style="color: var(--text-light); margin-bottom: 24px;">Are you sure you want to log out?</p>
+                    <div style="display: flex; justify-content: center; gap: 12px;">
+                        <button class="btn btn-outline" style="min-width: 120px;" id="cancelLogoutBtn">Cancel</button>
+                        <button class="btn btn-primary" style="min-width: 120px; background: var(--danger); border-color: var(--danger);" id="confirmLogoutBtn">Yes, Logout</button>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- End of .page-container -->
+    </main>
+
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+
+    <!-- Change Password Modal -->
+    <div id="changePwdModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:14px;padding:28px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <h3 style="font-size:1.1rem;color:#0f172a">Change Password</h3>
+                <button onclick="closeModal('changePwdModal')" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#64748b">&times;</button>
+            </div>
+            <form id="changePwdForm">
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" id="currentPwd" class="form-control" placeholder="Enter current password" required>
+                </div>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="newPwd" class="form-control" placeholder="Min 6 characters" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="confirmPwd" class="form-control" placeholder="Repeat new password" required>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+                    <button type="button" onclick="closeModal('changePwdModal')" class="btn btn-outline">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="width:auto;padding:10px 24px">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        var CURRENT_USER = {{ user | tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/db.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

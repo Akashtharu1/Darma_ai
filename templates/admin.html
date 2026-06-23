@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DermAI Agent - Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar admin-theme">
+        <div class="sidebar-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
+            DermAI Agent <br> <span style="font-size: 0.75rem; font-weight: normal; color: #99f6e4;">Admin Panel</span>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="active" data-target="overview-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> Overview
+            </a></li>
+            <li><a href="#" data-target="users-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Users
+            </a></li>
+            <li><a href="#" data-target="patients-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg> Patients
+            </a></li>
+            <li><a href="#" data-target="diagnoses-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Diagnoses
+            </a></li>
+            <li><a href="#" data-target="models-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> Models
+            </a></li>
+            <li><a href="#" data-target="reports-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg> Reports
+            </a></li>
+            <li><a href="#" data-target="logs-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg> Logs
+            </a></li>
+            <li><a href="#" data-target="settings-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> System Settings
+            </a></li>
+            <li><a href="#" data-target="backup-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Backup
+            </a></li>
+            <li style="margin-top:10px"><a href="#" data-target="logout-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> Logout
+            </a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <nav class="top-nav">
+            <div class="top-nav-title" style="margin: 0 auto;">
+                <h1 style="color: var(--sidebar-admin);">ADMIN INTERFACE (Admin Dashboard)</h1>
+            </div>
+            <div class="top-nav-right" style="position: absolute; right: 32px;">
+                <div class="user-profile">
+                    <div class="user-info">
+                        <div class="user-name">{{ user.name if user else 'Admin' }}</div>
+                        <div class="user-role">{{ user.role if user else 'Super Administrator' }}</div>
+                    </div>
+                    <div style="width: 32px; height: 32px; background: #0d9488; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold;">{{ user.name[0].upper() if user and user.name else 'A' }}</div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="page-container" id="all-views-container">
+            
+            <!-- VIEW: OVERVIEW -->
+            <div class="view-content" id="overview-content">
+                <div class="admin-grid">
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-title">Total Users</span>
+                            <span class="metric-value">128</span>
+                            <span class="metric-trend trend-up">12% from last month</span>
+                        </div>
+                        <div class="metric-icon" style="color: #3b82f6; background: #eff6ff;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-title">Total Patients</span>
+                            <span class="metric-value">532</span>
+                            <span class="metric-trend trend-up">18% from last month</span>
+                        </div>
+                        <div class="metric-icon" style="color: #0ea5e9; background: #e0f2fe;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-title">Total Diagnoses</span>
+                            <span class="metric-value">1,245</span>
+                            <span class="metric-trend trend-up">22% from last month</span>
+                        </div>
+                        <div class="metric-icon" style="color: #8b5cf6; background: #f3e8ff;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-title">High Risk Cases</span>
+                            <span class="metric-value">186</span>
+                            <span class="metric-trend trend-up">15% from last month</span>
+                        </div>
+                        <div class="metric-icon" style="color: #ef4444; background: #fef2f2;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-title">Model Accuracy</span>
+                            <span class="metric-value">91.7%</span>
+                            <span class="metric-trend trend-up">2.3% from last month</span>
+                        </div>
+                        <div class="metric-icon" style="color: #0d9488; background: #f0fdfa;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-title">System Status</span>
+                            <span class="metric-value">Online</span>
+                            <span class="metric-trend"><span style="color: var(--text-light)">All systems operational</span></span>
+                        </div>
+                        <div class="metric-icon" style="color: #10b981; background: #dcfce7;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
+                    </div>
+                </div>
+
+                <div class="main-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Recent Diagnoses</h3>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead><tr><th>Patient ID</th><th>Age</th><th>Predicted Disease</th><th>Risk Level</th><th>Confidence</th><th>Date</th></tr></thead>
+                                <tbody id="adminRecentDiagnosesBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">System Logs (Latest)</h3></div>
+                        <ul class="log-list" id="adminSystemLogsBody">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="three-col-grid">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Diagnosis Trend</h3></div>
+                        <div class="chart-container"><canvas id="trendChart"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Disease Distribution</h3></div>
+                        <div class="chart-container" style="display: flex; align-items: center; justify-content: center;"><canvas id="pieChart"></canvas></div>
+                    </div>
+                    <div class="card" style="display: flex; flex-direction: column;">
+                        <div class="card-header"><h3 class="card-title">Model Performance</h3></div>
+                        <div style="flex:1; display:flex; flex-direction: column; justify-content: space-between;">
+                            <div class="progress-container"><div class="progress-header"><span>Accuracy</span><span>91.7%</span></div><div class="progress-bar"><div class="progress-fill" style="width: 91.7%;"></div></div></div>
+                            <div class="progress-container"><div class="progress-header"><span>Precision</span><span>90.2%</span></div><div class="progress-bar"><div class="progress-fill" style="width: 90.2%;"></div></div></div>
+                            <div class="progress-container"><div class="progress-header"><span>Recall</span><span>89.8%</span></div><div class="progress-bar"><div class="progress-fill" style="width: 89.8%;"></div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: USERS -->
+            <div class="view-content" id="users-content" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h2>Users</h2>
+                        <p>Manage system users and their access</p>
+                    </div>
+                    <button class="btn btn-primary" style="background: var(--sidebar-admin); border-color: var(--sidebar-admin);">+ Add User</button>
+                </div>
+                <div class="card">
+                    <div class="toolbar">
+                        <div></div>
+                        <div class="search-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" placeholder="Search users...">
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>ID</th><th>Full Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+                            <tbody id="adminUsersTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <span class="page-info">Showing 1 to 5 of 6 users</span>
+                        <div class="page-numbers"><button><</button><button class="active">1</button><button>></button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: PATIENTS -->
+            <div class="view-content" id="patients-content" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h2>Patients</h2>
+                        <p>Manage patient records and their information</p>
+                    </div>
+                    <button class="btn btn-primary" style="background: var(--sidebar-admin); border-color: var(--sidebar-admin);">+ Add Patient</button>
+                </div>
+                <div class="card">
+                    <div class="toolbar">
+                        <div></div>
+                        <div class="search-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" placeholder="Search patients...">
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>ID</th><th>Full Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Last Visit</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="adminPatientsTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <span class="page-info">Showing 1 to 4 of 25 patients</span>
+                        <div class="page-numbers"><button><</button><button class="active">1</button><button>2</button><button>3</button><button>></button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: DIAGNOSES -->
+            <div class="view-content" id="diagnoses-content" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h2>Diagnoses</h2>
+                        <p>View and manage AI-assisted diagnoses</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" placeholder="Search diagnoses...">
+                        </div>
+                        <button class="btn btn-outline" style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg> Filter
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>ID</th><th>Patient</th><th>Condition</th><th>AI Confidence</th><th>Doctor</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="adminDiagnosesTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <span class="page-info">Showing 1 to 5 of 24 diagnoses</span>
+                        <div class="page-numbers"><button><</button><button class="active">1</button><button>2</button><button>3</button><button>></button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: DIAGNOSIS DETAILS -->
+            <div class="view-content" id="diagnosis-details-content" style="display: none;">
+                <a href="#" class="back-link" id="back-to-diagnoses"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Back to Diagnoses</a>
+                
+                <div class="page-header" style="margin-bottom: 12px; margin-top: 12px;">
+                    <div>
+                        <h2>Diagnosis Details</h2>
+                        <p>Detailed information about the diagnosis</p>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="details-summary">
+                        <div class="detail-item"><span class="detail-label">Diagnosis ID</span><span class="detail-val">DIA-001</span></div>
+                        <div class="detail-item"><span class="detail-label">Patient</span><span class="detail-val">John Doe<br><span style="font-size:0.75rem; color:var(--text-light); font-weight:normal;">PAT-001</span></span></div>
+                        <div class="detail-item"><span class="detail-label">Condition</span><span class="detail-val">Melanoma</span></div>
+                        <div class="detail-item"><span class="detail-label">AI Confidence</span><span class="detail-val" style="color: var(--success);">92%</span></div>
+                        <div class="detail-item"><span class="detail-label">Status</span><span class="tag tag-confirmed" style="margin-top:4px;">Confirmed</span></div>
+                        <div class="detail-item"><span class="detail-label">Date</span><span class="detail-val">May 24, 2024<br><span style="font-size:0.75rem; color:var(--text-light); font-weight:normal;">10:30 AM</span></span></div>
+                    </div>
+                    <div class="details-tabs">
+                        <div class="d-tab active">Overview</div>
+                        <div class="d-tab">Images</div>
+                        <div class="d-tab">AI Analysis</div>
+                        <div class="d-tab">Doctor Notes</div>
+                        <div class="d-tab">History</div>
+                    </div>
+                    <div class="details-body">
+                        <div class="details-box">
+                            <h4>Patient Information</h4>
+                            <div class="info-grid">
+                                <span class="label">Age</span><span class="val">45 years</span>
+                                <span class="label">Gender</span><span class="val">Male</span>
+                                <span class="label">Skin Type</span><span class="val">Type II</span>
+                                <span class="label">Medical History</span><span class="val">No significant history</span>
+                                <span class="label">Allergies</span><span class="val">None known</span>
+                            </div>
+                        </div>
+                        <div class="details-box">
+                            <h4>Diagnosis Summary</h4>
+                            <div class="info-grid">
+                                <span class="label">AI Model Used</span><span class="val">DermAI v2.1</span>
+                                <span class="label">Analysis Type</span><span class="val">Skin Lesion Classification</span>
+                                <span class="label">Confidence Score</span><span class="val">92%</span>
+                                <span class="label">Risk Level</span><span class="val" style="color:var(--danger);">High</span>
+                                <span class="label">Recommendation</span><span class="val">Immediate dermatologist consultation recommended.</span>
+                            </div>
+                        </div>
+                        <div class="details-box">
+                            <h4>AI Analysis Results</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <h5 style="font-size: 0.8rem; margin-bottom: 8px; color: var(--text-light);">Key Findings</h5>
+                                    <ul class="key-findings">
+                                        <li>Asymmetric border detected</li>
+                                        <li>Color variation identified</li>
+                                        <li>Irregular shape</li>
+                                        <li>Diameter > 6mm</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h5 style="font-size: 0.8rem; margin-bottom: 8px; color: var(--text-light);">Probability Breakdown</h5>
+                                    <div class="progress-container" style="padding:0; margin-bottom:8px;">
+                                        <div class="progress-header" style="font-size:0.75rem;"><span>Melanoma</span><span>92%</span></div>
+                                        <div class="progress-bar" style="height:6px;"><div class="progress-fill" style="width: 92%; background: var(--success);"></div></div>
+                                    </div>
+                                    <div class="progress-container" style="padding:0; margin-bottom:8px;">
+                                        <div class="progress-header" style="font-size:0.75rem;"><span>Nevus</span><span>6%</span></div>
+                                        <div class="progress-bar" style="height:6px;"><div class="progress-fill" style="width: 6%; background: var(--sidebar-admin);"></div></div>
+                                    </div>
+                                    <div class="progress-container" style="padding:0; margin-bottom:8px;">
+                                        <div class="progress-header" style="font-size:0.75rem;"><span>Basal Cell Carcinoma</span><span>2%</span></div>
+                                        <div class="progress-bar" style="height:6px;"><div class="progress-fill" style="width: 2%; background: var(--sidebar-admin);"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="details-box">
+                            <h4>Doctor Assessment</h4>
+                            <div class="info-grid" style="grid-template-columns: 80px 1fr;">
+                                <span class="label">Diagnosis</span><span class="val">Confirmed - Melanoma</span>
+                                <span class="label">Notes</span><span class="val">Patient shows suspicious lesion characteristics. Biopsy recommended.</span>
+                                <span class="label">Follow-up</span><span class="val">Urgent referral to dermatology</span>
+                                <span class="label">Signed by</span><span class="val">Dr. Sarah Johnson</span>
+                                <span class="label">Date</span><span class="val">May 24, 2024 10:30 AM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: MODELS -->
+            <div class="view-content" id="models-content" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h2>Models</h2>
+                        <p>Manage AI models and their configurations</p>
+                    </div>
+                    <button class="btn btn-primary" style="background: var(--sidebar-admin); border-color: var(--sidebar-admin);">+ Add Model</button>
+                </div>
+                <div class="card">
+                    <div class="toolbar">
+                        <div></div>
+                        <div class="search-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" placeholder="Search models...">
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Model ID</th><th>Model Name</th><th>Version</th><th>Type</th><th>Accuracy</th><th>Status</th><th>Last Trained</th><th>Actions</th></tr></thead>
+                            <tbody>
+                                <tr><td>MOD-001</td><td>Skin Cancer Classifier</td><td>v2.1.0</td><td>Classification</td><td>92.3%</td><td><span class="tag tag-active">Active</span></td><td>May 24, 2024</td><td class="action-btns"><button class="action-icon">✎</button><button class="action-icon">🗑</button></td></tr>
+                                <tr><td>MOD-002</td><td>Nevus Detection</td><td>v1.8.3</td><td>Detection</td><td>88.7%</td><td><span class="tag tag-active">Active</span></td><td>May 23, 2024</td><td class="action-btns"><button class="action-icon">✎</button><button class="action-icon">🗑</button></td></tr>
+                                <tr><td>MOD-003</td><td>Lesion Segmentation</td><td>v1.5.0</td><td>Segmentation</td><td>90.1%</td><td><span class="tag tag-active">Active</span></td><td>May 22, 2024</td><td class="action-btns"><button class="action-icon">✎</button><button class="action-icon">🗑</button></td></tr>
+                                <tr><td>MOD-004</td><td>Melanoma Classifier</td><td>v3.0.1</td><td>Classification</td><td>94.2%</td><td><span class="tag tag-training">Training</span></td><td>May 24, 2024</td><td class="action-btns"><button class="action-icon">✎</button><button class="action-icon">🗑</button></td></tr>
+                                <tr><td>MOD-005</td><td>BCC Detector</td><td>v1.2.0</td><td>Detection</td><td>86.5%</td><td><span class="tag tag-inactive">Inactive</span></td><td>May 20, 2024</td><td class="action-btns"><button class="action-icon">✎</button><button class="action-icon">🗑</button></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: REPORTS -->
+            <div class="view-content" id="reports-content" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h2>Reports</h2>
+                        <p>View and generate system reports</p>
+                    </div>
+                    <div class="header-actions">
+                        <select class="form-control" style="width: auto; height: 36px;"><option>May 18, 2024 - May 24, 2024</option></select>
+                        <button class="btn btn-primary" style="background: var(--sidebar-admin); border-color: var(--sidebar-admin); height: 36px; padding: 0 16px;">Generate Report</button>
+                    </div>
+                </div>
+                
+                <div class="admin-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-title">Total Diagnoses</span>
+                            <span class="metric-value">1,248</span>
+                            <span class="metric-trend trend-up">+12.5% from last week</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-title">Active Patients</span>
+                            <span class="metric-value">856</span>
+                            <span class="metric-trend trend-up">+8.3% from last week</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-title">AI Accuracy</span>
+                            <span class="metric-value">91.2%</span>
+                            <span class="metric-trend trend-up">+2.1% from last week</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-title">Models Trained</span>
+                            <span class="metric-value">23</span>
+                            <span class="metric-trend trend-up">+15.0% from last week</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="main-grid" style="grid-template-columns: 2fr 1fr;">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Diagnoses Over Time</h3></div>
+                        <div class="chart-container"><canvas id="reportsTrendChart"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Top Conditions</h3></div>
+                        <div class="chart-container" style="display: flex; align-items: center; justify-content: center;"><canvas id="reportsPieChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: LOGS -->
+            <div class="view-content" id="logs-content" style="display: none;">
+                <div class="page-header">
+                    <div>
+                        <h2>Logs</h2>
+                        <p>System activity and event logs</p>
+                    </div>
+                    <div class="header-actions">
+                        <select class="form-control" style="width: auto; height: 36px;"><option>All Levels</option><option>INFO</option><option>WARNING</option><option>ERROR</option></select>
+                        <select class="form-control" style="width: auto; height: 36px;"><option>May 18, 2024 - May 24, 2024</option></select>
+                        <button class="btn btn-primary" style="background: var(--sidebar-admin); border-color: var(--sidebar-admin); height: 36px; padding: 0 16px;">Export Logs</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Time</th><th>Level</th><th>User</th><th>Action</th><th>Details</th><th>IP Address</th></tr></thead>
+                            <tbody>
+                                <tr><td>May 24, 2024 10:30 AM</td><td><span class="tag tag-active">INFO</span></td><td>admin</td><td>User Login</td><td>Admin logged in successfully</td><td>192.168.1.100</td></tr>
+                                <tr><td>May 24, 2024 10:25 AM</td><td><span class="tag tag-active">INFO</span></td><td>admin</td><td>Patient Created</td><td>New patient John Doe (PAT-001) created</td><td>192.168.1.100</td></tr>
+                                <tr><td>May 24, 2024 10:20 AM</td><td><span class="tag tag-training">WARNING</span></td><td>system</td><td>Model Training</td><td>Model MOD-004 training in progress</td><td>192.168.1.101</td></tr>
+                                <tr><td>May 24, 2024 10:15 AM</td><td><span class="tag tag-active">INFO</span></td><td>admin</td><td>Diagnosis Completed</td><td>AI diagnosis completed for PAT-001</td><td>192.168.1.100</td></tr>
+                                <tr><td>May 24, 2024 10:10 AM</td><td><span class="tag tag-inactive">ERROR</span></td><td>system</td><td>Model Error</td><td>Model MOD-002 failed to load</td><td>192.168.1.101</td></tr>
+                                <tr><td>May 24, 2024 10:05 AM</td><td><span class="tag tag-active">INFO</span></td><td>admin</td><td>Settings Updated</td><td>System settings updated</td><td>192.168.1.100</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <span class="page-info">Showing 1 to 6 of 1,234 logs</span>
+                        <div class="page-numbers"><button><</button><button class="active">1</button><button>2</button><button>3</button><button>></button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: SETTINGS -->
+            <div class="view-content" id="settings-content" style="display: none;">
+                <div class="page-header"><div><h2>System Settings</h2></div></div>
+                <div class="card" style="padding: 0;">
+                    <div class="settings-grid">
+                        <div class="settings-sidebar">
+                            <div class="settings-tab active" data-panel="set-general">General</div>
+                            <div class="settings-tab" data-panel="set-security">Security</div>
+                            <div class="settings-tab" data-panel="set-ai">AI Settings</div>
+                            <div class="settings-tab" data-panel="set-notif">Notifications</div>
+                            <div class="settings-tab" data-panel="set-db">Database</div>
+                            <div class="settings-tab" data-panel="set-integrations">Integrations</div>
+                            <div class="settings-tab" data-panel="set-advanced">Advanced</div>
+                        </div>
+                        <div style="padding:30px 40px;">
+
+                            <!-- General -->
+                            <div id="set-general">
+                                <h3 style="margin-bottom:20px;color:var(--secondary)">General Settings</h3>
+                                <div class="settings-form-group"><label>System Name</label><input id="sysName" type="text" class="settings-input" value="DermAI Agent"></div>
+                                <div class="settings-form-group"><label>System Email</label><input id="sysEmail" type="email" class="settings-input" value="admin@dermai.com"></div>
+                                <div class="settings-form-group"><label>Time Zone</label><select id="sysTZ" class="settings-input"><option>(UTC-05:00) Eastern Time</option><option>(UTC+00:00) UTC</option><option>(UTC+05:30) IST</option></select></div>
+                                <div class="settings-form-group"><label>Date Format</label><select id="sysDateFmt" class="settings-input"><option>MM/DD/YYYY</option><option>DD/MM/YYYY</option><option>YYYY-MM-DD</option></select></div>
+                                <div class="settings-form-group"><label>Language</label><select id="sysLang" class="settings-input"><option>English</option><option>Spanish</option><option>French</option></select></div>
+                                <div class="settings-form-group"><label>Items Per Page</label><select id="sysPerPage" class="settings-input"><option>10</option><option>25</option><option>50</option></select></div>
+                                <button type="button" class="btn btn-primary admin-settings-save" style="margin-top:10px;background:var(--sidebar-admin);border-color:var(--sidebar-admin)">Save Changes</button>
+                            </div>
+
+                            <!-- Security -->
+                            <div id="set-security" style="display:none">
+                                <h3 style="margin-bottom:20px;color:var(--secondary)">Security Settings</h3>
+                                <div class="settings-form-group"><label>Session Timeout (minutes)</label><select id="secTimeout" class="settings-input"><option>30</option><option>60</option><option>120</option><option>Never</option></select></div>
+                                <div class="settings-form-group"><label>Max Login Attempts</label><input id="secMaxLogin" type="number" class="settings-input" value="5"></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="sec2FA"> Enable Two-Factor Authentication</label></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="secLoginAlert" checked> Email alert on admin login</label></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="secForceHTTPS" checked> Force HTTPS</label></div>
+                                <button type="button" class="btn btn-primary admin-settings-save" style="margin-top:10px;background:var(--sidebar-admin);border-color:var(--sidebar-admin)">Save Changes</button>
+                            </div>
+
+                            <!-- AI Settings -->
+                            <div id="set-ai" style="display:none">
+                                <h3 style="margin-bottom:20px;color:var(--secondary)">AI Settings</h3>
+                                <div class="settings-form-group"><label>Default Model</label><select id="aiModel" class="settings-input"><option>Skin Cancer Classifier v2.1</option><option>Melanoma Classifier v3.0</option></select></div>
+                                <div class="settings-form-group"><label>Confidence Threshold (%)</label><input id="aiThreshold" type="number" class="settings-input" value="75" min="50" max="99"></div>
+                                <div class="settings-form-group"><label>Max Image Size (MB)</label><input id="aiMaxImg" type="number" class="settings-input" value="10"></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="aiAutoSave" checked> Auto-save diagnosis results</label></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="aiExplain" checked> Show medical explanation</label></div>
+                                <button type="button" class="btn btn-primary admin-settings-save" style="margin-top:10px;background:var(--sidebar-admin);border-color:var(--sidebar-admin)">Save Changes</button>
+                            </div>
+
+                            <!-- Notifications -->
+                            <div id="set-notif" style="display:none">
+                                <h3 style="margin-bottom:20px;color:var(--secondary)">Notification Settings</h3>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="notifNewDiag" checked> Notify on new diagnosis</label></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="notifHighRisk" checked> Alert for High Risk cases</label></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="notifNewUser" checked> Notify on new user registration</label></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="notifBackup"> Notify on backup completion</label></div>
+                                <div class="settings-form-group"><label>Notification Email</label><input id="notifEmail" type="email" class="settings-input" value="admin@dermai.com"></div>
+                                <button type="button" class="btn btn-primary admin-settings-save" style="margin-top:10px;background:var(--sidebar-admin);border-color:var(--sidebar-admin)">Save Changes</button>
+                            </div>
+
+                            <!-- Database -->
+                            <div id="set-db" style="display:none">
+                                <h3 style="margin-bottom:20px;color:var(--secondary)">Database Settings</h3>
+                                <div class="settings-form-group"><label>Database Type</label><select id="dbType" class="settings-input"><option>SQLite</option><option>PostgreSQL</option><option>MySQL</option></select></div>
+                                <div class="settings-form-group"><label>Database Path / Host</label><input id="dbPath" type="text" class="settings-input" value="dermai.db"></div>
+                                <div class="settings-form-group"><label>Auto Backup Interval</label><select id="dbBackupInterval" class="settings-input"><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Never</option></select></div>
+                                <div class="settings-form-group"><label>Max Records Per Table</label><input id="dbMaxRecords" type="number" class="settings-input" value="100000"></div>
+                                <button type="button" class="btn btn-primary admin-settings-save" style="margin-top:10px;background:var(--sidebar-admin);border-color:var(--sidebar-admin)">Save Changes</button>
+                            </div>
+
+                            <!-- Integrations -->
+                            <div id="set-integrations" style="display:none">
+                                <h3 style="margin-bottom:20px;color:var(--secondary)">Integrations</h3>
+                                <div class="settings-form-group"><label>API Key</label><input id="intApiKey" type="text" class="settings-input" value="sk-dermai-****-****-****"></div>
+                                <div class="settings-form-group"><label>Webhook URL</label><input id="intWebhook" type="url" class="settings-input" placeholder="https://your-webhook.com/endpoint"></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="intEHR"> Enable EHR Integration</label></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="intSlack"> Slack Notifications</label></div>
+                                <button type="button" class="btn btn-primary admin-settings-save" style="margin-top:10px;background:var(--sidebar-admin);border-color:var(--sidebar-admin)">Save Changes</button>
+                            </div>
+
+                            <!-- Advanced -->
+                            <div id="set-advanced" style="display:none">
+                                <h3 style="margin-bottom:20px;color:var(--secondary)">Advanced Settings</h3>
+                                <div class="settings-form-group"><label>Log Level</label><select id="advLogLevel" class="settings-input"><option>INFO</option><option>WARNING</option><option>ERROR</option><option>DEBUG</option></select></div>
+                                <div class="settings-form-group"><label>Max Log Entries</label><input id="advMaxLogs" type="number" class="settings-input" value="10000"></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="advDebug"> Enable Debug Mode</label></div>
+                                <div class="settings-form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="advMaintenance"> Maintenance Mode</label></div>
+                                <button type="button" class="btn btn-primary admin-settings-save" style="margin-top:10px;background:var(--sidebar-admin);border-color:var(--sidebar-admin)">Save Changes</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: BACKUP -->
+            <div class="view-content" id="backup-content" style="display: none;">
+                <div class="page-header">
+                    <div><h2>Backup</h2><p>Manage system backups and restore points</p></div>
+                    <div class="header-actions">
+                        <button class="btn btn-outline" id="restoreBackupBtn" style="background:white">Restore</button>
+                        <button class="btn btn-primary" id="createBackupBtn" style="background:var(--sidebar-admin);border-color:var(--sidebar-admin)">+ Create Backup</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-container">
+                        <table id="backups-table">
+                            <thead><tr><th>Backup Name</th><th>Type</th><th>Size</th><th>Date Created</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody>
+                                <tr><td>backup_20240524_103000</td><td>Full Backup</td><td>2.4 GB</td><td>May 24, 2024 10:30 AM</td><td><span class="tag tag-active">Completed</span></td><td class="action-btns"><button class="action-icon">✎</button><button class="action-icon">🗑</button></td></tr>
+                                <tr><td>backup_20240523_103000</td><td>Full Backup</td><td>2.3 GB</td><td>May 23, 2024 10:30 AM</td><td><span class="tag tag-active">Completed</span></td><td class="action-btns"><button class="action-icon">✎</button><button class="action-icon">🗑</button></td></tr>
+                                <tr><td>backup_20240522_103000</td><td>Full Backup</td><td>2.2 GB</td><td>May 22, 2024 10:30 AM</td><td><span class="tag tag-active">Completed</span></td><td class="action-btns"><button class="action-icon">✎</button><button class="action-icon">🗑</button></td></tr>
+                                <tr><td>backup_20240521_103000</td><td>Incremental</td><td>450 MB</td><td>May 21, 2024 10:30 AM</td><td><span class="tag tag-active">Completed</span></td><td class="action-btns"><button class="action-icon">✎</button><button class="action-icon">🗑</button></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <span class="page-info">Showing 1 to 4 of 15 backups</span>
+                        <div class="page-numbers"><button><</button><button class="active">1</button><button>2</button><button>3</button><button>></button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: LOGOUT -->
+            <div class="view-content" id="logout-content" style="display: none;">
+                <div class="card logout-box">
+                    <div class="logout-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    </div>
+                    <h2 style="margin-bottom: 12px; color: var(--secondary);">Confirm Logout</h2>
+                    <p style="color: var(--text-light); margin-bottom: 24px;">Are you sure you want to log out from the admin panel?</p>
+                    <div style="display:flex;justify-content:center;gap:12px;">
+                        <button class="btn btn-outline" id="cancelAdminLogoutBtn" style="min-width:120px">Cancel</button>
+                        <button class="btn btn-primary" id="confirmAdminLogoutBtn" style="min-width:120px;background:var(--danger);border-color:var(--danger)">Yes, Logout</button>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- End of .page-container -->
+    </main>
+
+    <script>
+        var CURRENT_USER = {{ user | tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/db.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+</html>
