@@ -1,0 +1,95 @@
+{
+  "class_names": [
+    "akiec",
+    "bcc",
+    "bkl",
+    "df",
+    "mel",
+    "nv",
+    "vasc"
+  ],
+  "class_display_names": {
+    "akiec": "Actinic Keratosis",
+    "bcc": "Basal Cell Carcinoma",
+    "bkl": "Benign Keratosis",
+    "df": "Dermatofibroma",
+    "mel": "Melanoma",
+    "nv": "Melanocytic Nevi",
+    "vasc": "Vascular Lesion"
+  },
+  "class_to_idx": {
+    "akiec": 0,
+    "bcc": 1,
+    "bkl": 2,
+    "df": 3,
+    "mel": 4,
+    "nv": 5,
+    "vasc": 6
+  },
+  "idx_to_class": {
+    "0": "akiec",
+    "1": "bcc",
+    "2": "bkl",
+    "3": "df",
+    "4": "mel",
+    "5": "nv",
+    "6": "vasc"
+  },
+  "img_size": 224,
+  "num_classes": 7,
+  "risk_mapping": {
+    "mel": "High Risk",
+    "bcc": "High Risk",
+    "akiec": "High Risk",
+    "bkl": "Low Risk",
+    "df": "Low Risk",
+    "nv": "Low Risk",
+    "vasc": "Medium Risk"
+  },
+  "explanation": {
+    "mel": "The lesion exhibits asymmetric borders, color variation, and irregular shape \u2014 key indicators of Melanoma. Immediate dermatologist consultation is strongly recommended.",
+    "bcc": "Characteristics suggest Basal Cell Carcinoma \u2014 the most common form of skin cancer. Early treatment is highly effective. Please consult a dermatologist.",
+    "akiec": "Findings are consistent with Actinic Keratosis or early intraepithelial carcinoma. These are considered pre-cancerous and should be monitored closely.",
+    "bkl": "The pattern is consistent with a Benign Keratosis-like lesion. Generally harmless, but monitoring is advised.",
+    "df": "Lesion is consistent with Dermatofibroma, a benign fibrous nodule. Usually harmless; excision is only necessary if symptomatic.",
+    "nv": "The lesion appears to be a benign Melanocytic Nevus (mole). Regular monitoring is advised.",
+    "vasc": "Findings suggest a Vascular Lesion. These are typically benign but should be evaluated by a dermatologist."
+  },
+  "suggestions": {
+    "mel": [
+      "Consult a dermatologist immediately.",
+      "Avoid sun exposure.",
+      "Consider biopsy for confirmation."
+    ],
+    "bcc": [
+      "Schedule dermatologist appointment.",
+      "Avoid prolonged UV exposure.",
+      "Surgical removal may be required."
+    ],
+    "akiec": [
+      "Consult a dermatologist promptly.",
+      "Use SPF 50+ sunscreen daily.",
+      "Cryotherapy or topical treatment may be recommended."
+    ],
+    "bkl": [
+      "Monitor for any changes.",
+      "Annual skin check recommended.",
+      "No immediate treatment needed."
+    ],
+    "df": [
+      "Usually no treatment needed.",
+      "Monitor for size or color changes.",
+      "See a dermatologist if it becomes painful."
+    ],
+    "nv": [
+      "Monitor for changes in size or color.",
+      "Annual skin check recommended.",
+      "Use SPF 50+ sunscreen."
+    ],
+    "vasc": [
+      "Consult a dermatologist for evaluation.",
+      "Laser treatment may be an option.",
+      "Monitor for any changes in size or bleeding."
+    ]
+  }
+}

@@ -11,6 +11,8 @@ from flask import (Flask, render_template, request, redirect,
                    url_for, session, jsonify, g, abort)
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+import numpy as np
+from PIL import Image
 
 # ─────────────────────────────────────────────
 # APP CONFIG
@@ -38,6 +40,71 @@ MAGIC_BYTES = {
 }
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# ─────────────────────────────────────────────
+# AI MODEL — lazy-loaded on first prediction
+# ─────────────────────────────────────────────
+MODEL_PATH    = os.path.join(os.path.dirname(__file__), 'dermai_model.h5')
+METADATA_PATH = os.path.join(os.path.dirname(__file__), 'dermai_class_metadata.json')
+AI_IMG_SIZE   = 224
+
+_skin_model = None
+_skin_meta  = None
+
+def get_skin_model():
+    """Load model and metadata once, reuse on every subsequent call."""
+    global _skin_model, _skin_meta
+    if _skin_model is None:
+        try:
+            import tensorflow as tf
+            print("[DermAI] Loading skin disease model…")
+            _skin_model = tf.keras.models.load_model(MODEL_PATH)
+            with open(METADATA_PATH) as f:
+                _skin_meta = json.load(f)
+            print("[DermAI] Model loaded successfully.")
+        except Exception as e:
+            print(f"[DermAI] Model load failed: {e}")
+            _skin_model = None
+            _skin_meta  = None
+    return _skin_model, _skin_meta
+
+def predict_skin_disease(image_path):
+    """
+    Run inference on a saved image.
+    Returns (display_name, confidence_int, risk, explanation, suggestions).
+    Falls back to a safe default if the model is unavailable.
+    """
+    model, meta = get_skin_model()
+    if model is None or meta is None:
+        return ('Unknown', 0, 'Low Risk',
+                'AI model is unavailable. Please contact the administrator.',
+                ['Consult a dermatologist for a proper diagnosis.'])
+
+    try:
+        img  = Image.open(image_path).convert('RGB')
+        img  = img.resize((AI_IMG_SIZE, AI_IMG_SIZE))
+        arr  = np.array(img, dtype=np.float32) / 255.0
+        arr  = np.expand_dims(arr, 0)                  # shape (1, 224, 224, 3)
+
+        import tensorflow as tf
+        probs    = model.predict(arr, verbose=0)[0]    # shape (7,)
+        top_idx  = int(np.argmax(probs))
+        top_prob = float(probs[top_idx])
+
+        cls         = meta['idx_to_class'][str(top_idx)]
+        display     = meta['class_display_names'].get(cls, cls)
+        risk        = meta['risk_mapping'].get(cls, 'Low Risk')
+        explanation = meta['explanation'].get(cls, '')
+        suggestions = meta['suggestions'].get(cls, [])
+        confidence  = max(60, min(99, int(top_prob * 100)))
+
+        return display, confidence, risk, explanation, suggestions
+
+    except Exception as e:
+        print(f"[DermAI] Prediction error: {e}")
+        return ('Unknown', 0, 'Low Risk',
+                'Prediction failed. Please try again with a clearer image.',
+                ['Ensure the image is a close-up of the skin lesion.'])
 
 # ── Rate limiting store (in-memory, per IP) ──
 _rate_store: dict = {}   # { ip: [timestamp, ...] }
@@ -492,27 +559,8 @@ def admin_add_user():
     return jsonify({'success': True})
 
 # ─────────────────────────────────────────────
-# API — DIAGNOSIS (AI simulation)
+# API — DIAGNOSIS (AI powered)
 # ─────────────────────────────────────────────
-DISEASES = ['Melanoma', 'Nevus', 'Basal Cell Carcinoma', 'Psoriasis', 'Eczema']
-RISKS    = ['High Risk', 'Low Risk', 'Medium Risk', 'Low Risk', 'Low Risk']
-EXPLANATIONS = {
-    'Melanoma':             'The lesion exhibits asymmetric borders, color variation, and irregular shape — key indicators of Melanoma. Immediate dermatologist consultation is strongly recommended.',
-    'Nevus':                'The lesion appears to be a benign Nevus (mole). Regular monitoring is advised. No immediate action required unless changes are observed.',
-    'Basal Cell Carcinoma': 'Characteristics suggest Basal Cell Carcinoma — the most common form of skin cancer. Early treatment is highly effective. Please consult a dermatologist.',
-    'Psoriasis':            'The skin pattern is consistent with Psoriasis, a chronic inflammatory condition. Topical treatments and lifestyle adjustments can help manage symptoms.',
-    'Eczema':               'The lesion shows signs of Eczema (Atopic Dermatitis). Moisturizers and avoiding triggers are the first line of management.',
-}
-SUGGESTIONS = {
-    'Melanoma':             ['Consult a dermatologist immediately.', 'Avoid sun exposure.', 'Consider biopsy for confirmation.'],
-    'Nevus':                ['Monitor for changes in size or color.', 'Annual skin check recommended.', 'Use SPF 50+ sunscreen.'],
-    'Basal Cell Carcinoma': ['Schedule dermatologist appointment.', 'Avoid prolonged UV exposure.', 'Surgical removal may be required.'],
-    'Psoriasis':            ['Use prescribed topical corticosteroids.', 'Moisturize regularly.', 'Avoid known triggers.'],
-    'Eczema':               ['Apply fragrance-free moisturizer.', 'Avoid harsh soaps.', 'Consult a dermatologist for persistent cases.'],
-}
-
-def allowed_file_old_removed():
-    pass  # replaced by validate_image above
 
 @app.route('/api/diagnose', methods=['POST'])
 @login_required
@@ -535,13 +583,15 @@ def diagnose():
         image_path = os.path.join(UPLOAD_FOLDER, filename).replace('\\', '/')
         image.save(image_path)
 
-    # AI simulation
-    idx         = random.randint(0, len(DISEASES) - 1)
-    disease     = DISEASES[idx]
-    risk        = RISKS[idx]
-    confidence  = random.randint(75, 97)
-    explanation = EXPLANATIONS[disease]
-    suggestions = SUGGESTIONS[disease]
+    # ── Real AI prediction ──
+    if image_path:
+        disease, confidence, risk, explanation, suggestions = predict_skin_disease(image_path)
+    else:
+        disease     = 'Inconclusive'
+        confidence  = 0
+        risk        = 'Low Risk'
+        explanation = 'No image was provided. Please upload a clear skin lesion image for accurate diagnosis.'
+        suggestions = ['Upload a close-up image of the affected skin area.', 'Ensure good lighting when taking the photo.']
 
     db         = get_db()
     patient_id = 'P' + str(random.randint(10000, 99999))
@@ -685,5 +735,8 @@ def too_many_requests(e):
 # RUN — debug OFF in production, suppress version
 # ─────────────────────────────────────────────
 if __name__ == '__main__':
+    from werkzeug.serving import WSGIRequestHandler
+    WSGIRequestHandler.server_version = 'DermAI-Server'
+    WSGIRequestHandler.sys_version = ''
     debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     app.run(debug=debug_mode, port=5000)
