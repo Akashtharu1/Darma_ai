@@ -8,9 +8,9 @@ __pycache__/
 
 # Virtual Environment
 venv/
-.venv/
 env/
 ENV/
+.venv/
 
 # Database (contains real user data)
 *.db

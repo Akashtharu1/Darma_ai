@@ -31,6 +31,9 @@
             <li><a href="#" data-target="models-content">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg> Models
             </a></li>
+            <li><a href="#" data-target="calibration-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg> Calibration
+            </a></li>
             <li><a href="#" data-target="reports-content">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg> Reports
             </a></li>
@@ -596,6 +599,113 @@
                         <div class="page-numbers"><button><</button><button class="active">1</button><button>2</button><button>3</button><button>></button></div>
                     </div>
                 </div>
+            </div>
+
+            <!-- VIEW: CALIBRATION DASHBOARD -->
+            <div class="view-content" id="calibration-content" style="display: none;">
+                <style>
+                    .cal-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
+                    .cal-card { background:#fff; border-radius:14px; padding:20px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+                    .cal-card-title { font-size:.78rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+                    .cal-card-val { font-size:1.7rem; font-weight:800; color:#0f172a; line-height:1; }
+                    .cal-card-sub { font-size:.72rem; color:#94a3b8; margin-top:4px; }
+                    .cal-chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+                    .cal-chart-card { background:#fff; border-radius:14px; padding:22px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+                    .cal-chart-title { font-size:.95rem; font-weight:700; color:#0f172a; margin-bottom:4px; }
+                    .cal-chart-sub { font-size:.78rem; color:#64748b; margin-bottom:16px; }
+                    .cal-chart-wrap { height:240px; position:relative; }
+                    .cal-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:.78rem; font-weight:700; }
+                    .cal-note { background:#f0f4ff; border-left:3px solid #4f46e5; border-radius:8px; padding:12px 16px; font-size:.8rem; color:#334155; line-height:1.6; margin-top:4px; }
+                </style>
+
+                <div class="page-header" style="margin-bottom:20px;">
+                    <div>
+                        <h2>Model Confidence Evaluation</h2>
+                        <p style="color:var(--text-light);font-size:.9rem">Temperature Scaling calibration · ECE · Brier Score · Reliability Diagram</p>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <span id="cal-improve-tag" class="cal-badge" style="background:#f1f5f9;color:#64748b">Checking…</span>
+                        <button id="runCalibrationBtn" class="btn btn-primary" style="background:var(--sidebar-admin);border-color:var(--sidebar-admin);display:flex;align-items:center;gap:7px">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                            Run Calibration
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status banner -->
+                <div style="background:#f8faff;border:1px solid #e0e7ff;border-radius:10px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <span id="cal-status-msg" style="font-size:.85rem;color:#334155">Click "Run Calibration" to evaluate model confidence calibration.</span>
+                </div>
+
+                <!-- Metric Cards -->
+                <div class="cal-grid">
+                    <div class="cal-card">
+                        <div class="cal-card-title">ECE — Before</div>
+                        <div class="cal-card-val" id="cal-raw-ece" style="color:#ef4444">—</div>
+                        <div class="cal-card-sub">Expected Calibration Error (raw)</div>
+                    </div>
+                    <div class="cal-card">
+                        <div class="cal-card-title">ECE — After</div>
+                        <div class="cal-card-val" id="cal-after-ece" style="color:#4f46e5">—</div>
+                        <div class="cal-card-sub">After Temperature Scaling</div>
+                    </div>
+                    <div class="cal-card">
+                        <div class="cal-card-title">Brier Score — Before</div>
+                        <div class="cal-card-val" id="cal-raw-brier" style="color:#ef4444">—</div>
+                        <div class="cal-card-sub">Mean squared probability error (raw)</div>
+                    </div>
+                    <div class="cal-card">
+                        <div class="cal-card-title">Brier Score — After</div>
+                        <div class="cal-card-val" id="cal-after-brier" style="color:#4f46e5">—</div>
+                        <div class="cal-card-sub">After Temperature Scaling</div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="cal-chart-grid">
+                    <!-- Reliability Diagram -->
+                    <div class="cal-chart-card">
+                        <div class="cal-chart-title">Reliability Diagram</div>
+                        <div class="cal-chart-sub">Fraction of correct predictions vs mean predicted confidence per bin. A perfectly calibrated model follows the diagonal.</div>
+                        <div class="cal-chart-wrap">
+                            <canvas id="reliabilityChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Before/After Comparison -->
+                    <div class="cal-chart-card">
+                        <div class="cal-chart-title">Calibration Comparison</div>
+                        <div class="cal-chart-sub">ECE and Brier Score before and after Temperature Scaling. Lower values indicate better calibration.</div>
+                        <div class="cal-chart-wrap">
+                            <canvas id="calComparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Details Row -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+                    <div class="cal-card">
+                        <div style="font-size:.95rem;font-weight:700;color:#0f172a;margin-bottom:14px;">Calibration Parameters</div>
+                        <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+                            <tr><td style="padding:7px 0;color:#64748b;width:180px">Calibration Method</td><td style="font-weight:600">Temperature Scaling</td></tr>
+                            <tr style="border-top:1px solid #f1f5f9"><td style="padding:7px 0;color:#64748b">Optimal Temperature (T)</td><td style="font-weight:600" id="cal-temperature">—</td></tr>
+                            <tr style="border-top:1px solid #f1f5f9"><td style="padding:7px 0;color:#64748b">Confidence Bins</td><td style="font-weight:600">10</td></tr>
+                            <tr style="border-top:1px solid #f1f5f9"><td style="padding:7px 0;color:#64748b">Eval Dataset Size</td><td style="font-weight:600" id="cal-n-samples">—</td></tr>
+                            <tr style="border-top:1px solid #f1f5f9"><td style="padding:7px 0;color:#64748b">Evaluation Date</td><td style="font-weight:600" id="cal-eval-date">—</td></tr>
+                        </table>
+                    </div>
+                    <div class="cal-card">
+                        <div style="font-size:.95rem;font-weight:700;color:#0f172a;margin-bottom:14px;">Important Notes</div>
+                        <div class="cal-note">
+                            <strong>Classifier vs LLM confidence are evaluated separately.</strong> Only the skin classifier's softmax probabilities are calibrated here. LLM-generated explanations do not produce statistically validated probabilities and are excluded from this evaluation.
+                        </div>
+                        <div class="cal-note" style="margin-top:10px;border-color:#f59e0b;background:#fffbeb;">
+                            <strong>Clinical disclaimer:</strong> A higher confidence score does <em>not</em> indicate that a patient's skin condition has improved. Confidence scores reflect model reliability, not clinical outcome.
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- VIEW: LOGOUT -->

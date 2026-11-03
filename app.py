@@ -14,6 +14,15 @@ from werkzeug.utils import secure_filename
 import numpy as np
 from PIL import Image
 
+# ── Confidence calibration module ──
+from confidence_calibration import (
+    calibrate_prediction,
+    get_cached_calibration,
+    get_or_run_calibration,
+    invalidate_cache,
+    run_calibration_pipeline,
+)
+
 # ─────────────────────────────────────────────
 # APP CONFIG
 # ─────────────────────────────────────────────
@@ -57,7 +66,7 @@ def get_skin_model():
     if _skin_model is None:
         try:
             import tensorflow as tf
-            print("[DermAI] Loading skin disease model…")
+            print("[DermAI] Loading skin disease model...")
             _skin_model = tf.keras.models.load_model(MODEL_PATH)
             with open(METADATA_PATH) as f:
                 _skin_meta = json.load(f)
@@ -68,17 +77,29 @@ def get_skin_model():
             _skin_meta  = None
     return _skin_model, _skin_meta
 
+# ── Eagerly preload model in background thread so first request is fast ──
+import threading
+def _preload_model():
+    get_skin_model()
+threading.Thread(target=_preload_model, daemon=True).start()
+
 def predict_skin_disease(image_path):
     """
     Run inference on a saved image.
-    Returns (display_name, confidence_int, risk, explanation, suggestions).
+    Returns (display_name, raw_confidence_int, calibrated_confidence_int_or_None,
+             risk, explanation, suggestions, raw_probs_json).
     Falls back to a safe default if the model is unavailable.
+
+    Note on confidence values:
+        raw_confidence      — clipped to [60, 99] for display consistency (legacy behaviour)
+        calibrated_confidence — temperature-scaled; not artificially clipped;
+                                None if calibration data is insufficient.
     """
     model, meta = get_skin_model()
     if model is None or meta is None:
-        return ('Unknown', 0, 'Low Risk',
+        return ('Unknown', 0, None, 'Low Risk',
                 'AI model is unavailable. Please contact the administrator.',
-                ['Consult a dermatologist for a proper diagnosis.'])
+                ['Consult a dermatologist for a proper diagnosis.'], None)
 
     try:
         img  = Image.open(image_path).convert('RGB')
@@ -96,15 +117,24 @@ def predict_skin_disease(image_path):
         risk        = meta['risk_mapping'].get(cls, 'Low Risk')
         explanation = meta['explanation'].get(cls, '')
         suggestions = meta['suggestions'].get(cls, [])
-        confidence  = max(60, min(99, int(top_prob * 100)))
 
-        return display, confidence, risk, explanation, suggestions
+        # Raw confidence (legacy clamped range for UI consistency)
+        raw_confidence = max(60, min(99, int(top_prob * 100)))
+
+        # Calibrated confidence via Temperature Scaling
+        cal_confidence, cal_available = calibrate_prediction(probs)
+
+        # Serialise full probability vector for storage
+        raw_probs_json = json.dumps([round(float(p), 6) for p in probs])
+
+        return (display, raw_confidence, cal_confidence if cal_available else None,
+                risk, explanation, suggestions, raw_probs_json)
 
     except Exception as e:
         print(f"[DermAI] Prediction error: {e}")
-        return ('Unknown', 0, 'Low Risk',
+        return ('Unknown', 0, None, 'Low Risk',
                 'Prediction failed. Please try again with a clearer image.',
-                ['Ensure the image is a close-up of the skin lesion.'])
+                ['Ensure the image is a close-up of the skin lesion.'], None)
 
 # ── Rate limiting store (in-memory, per IP) ──
 _rate_store: dict = {}   # { ip: [timestamp, ...] }
@@ -154,17 +184,19 @@ def init_db():
             );
 
             CREATE TABLE IF NOT EXISTS diagnoses (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                diag_id      TEXT    NOT NULL,
-                patient_id   TEXT    NOT NULL,
-                disease      TEXT,
-                confidence   INTEGER,
-                risk         TEXT,
-                explanation  TEXT,
-                suggestions  TEXT,
-                image_path   TEXT,
-                date         TEXT,
-                user_id      INTEGER,
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                diag_id             TEXT    NOT NULL,
+                patient_id          TEXT    NOT NULL,
+                disease             TEXT,
+                confidence          INTEGER,
+                calibrated_confidence INTEGER,
+                raw_probs           TEXT,
+                risk                TEXT,
+                explanation         TEXT,
+                suggestions         TEXT,
+                image_path          TEXT,
+                date                TEXT,
+                user_id             INTEGER,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             );
 
@@ -191,6 +223,35 @@ def init_db():
             db.commit()
 
 init_db()
+
+# ── Migrate existing DB: add missing columns if absent ──
+with app.app_context():
+    _mdb = get_db()
+
+    # diagnoses table additions
+    for _col, _default in [
+        ('calibrated_confidence', 'NULL'),
+        ('raw_probs',             "''"),
+        ('visit_number',          '1'),
+        ('symptoms',              "''"),
+    ]:
+        try:
+            _mdb.execute(f"ALTER TABLE diagnoses ADD COLUMN {_col} TEXT DEFAULT {_default}")
+            _mdb.commit()
+        except Exception:
+            pass  # column already exists
+
+    # patients table additions
+    for _col, _default in [
+        ('visit_count', '1'),
+        ('first_visit', "''"),
+        ('symptoms',    "''"),
+    ]:
+        try:
+            _mdb.execute(f"ALTER TABLE patients ADD COLUMN {_col} TEXT DEFAULT {_default}")
+            _mdb.commit()
+        except Exception:
+            pass  # column already exists
 
 # ─────────────────────────────────────────────
 # SECURITY HEADERS (after every response)
@@ -569,6 +630,7 @@ def diagnose():
     gender       = request.form.get('gender', 'Unknown')
     symptoms     = request.form.get('symptoms', '')
     patient_name = request.form.get('patient_name', '').strip() or 'Unknown Patient'
+    existing_pid = request.form.get('existing_patient_id', '').strip()
     image        = request.files.get('image')
 
     if not age or not symptoms:
@@ -585,44 +647,115 @@ def diagnose():
 
     # ── Real AI prediction ──
     if image_path:
-        disease, confidence, risk, explanation, suggestions = predict_skin_disease(image_path)
+        disease, raw_confidence, cal_confidence, risk, explanation, suggestions, raw_probs_json = predict_skin_disease(image_path)
     else:
-        disease     = 'Inconclusive'
-        confidence  = 0
-        risk        = 'Low Risk'
-        explanation = 'No image was provided. Please upload a clear skin lesion image for accurate diagnosis.'
-        suggestions = ['Upload a close-up image of the affected skin area.', 'Ensure good lighting when taking the photo.']
+        disease        = 'Inconclusive'
+        raw_confidence = 0
+        cal_confidence = None
+        risk           = 'Low Risk'
+        explanation    = 'No image was provided. Please upload a clear skin lesion image for accurate diagnosis.'
+        suggestions    = ['Upload a close-up image of the affected skin area.', 'Ensure good lighting when taking the photo.']
+        raw_probs_json = None
 
-    db         = get_db()
-    patient_id = 'P' + str(random.randint(10000, 99999))
-    date_str   = datetime.now().strftime('%b %d, %Y %I:%M %p')
-    db.execute(
-        "INSERT INTO patients (patient_id, name, age, gender, phone, last_visit, user_id) VALUES (?,?,?,?,?,?,?)",
-        (patient_id, patient_name, age, gender, '-', date_str, session['user_id'])
-    )
+    db       = get_db()
+    date_str = datetime.now().strftime('%b %d, %Y %I:%M %p')
 
+    # ── Patient identification: returning vs new ──
+    # Priority 1: explicit existing_patient_id from form
+    # Priority 2: auto-match by name + age + gender for same user
+    is_returning = False
+    prev_disease  = None
+    visit_count   = 1
+    first_visit   = date_str
+    existing      = None
+
+    if existing_pid:
+        if session.get('role') == 'Super Administrator':
+            existing = db.execute(
+                "SELECT * FROM patients WHERE patient_id=?", (existing_pid,)
+            ).fetchone()
+        else:
+            existing = db.execute(
+                "SELECT * FROM patients WHERE patient_id=? AND user_id=?",
+                (existing_pid, session['user_id'])
+            ).fetchone()
+
+    # Auto-match by name + age + gender if no explicit ID given
+    if not existing:
+        existing = db.execute(
+            "SELECT * FROM patients WHERE LOWER(name)=? AND age=? AND LOWER(gender)=? AND user_id=? "
+            "ORDER BY id DESC LIMIT 1",
+            (patient_name.lower(), str(age), gender.lower(), session['user_id'])
+        ).fetchone()
+
+    if existing:
+        is_returning  = True
+        patient_id    = existing['patient_id']
+        visit_count   = (int(existing['visit_count'] or 1)) + 1
+        first_visit   = existing['first_visit'] or existing['last_visit'] or date_str
+        prev_disease  = db.execute(
+            "SELECT disease FROM diagnoses WHERE patient_id=? ORDER BY id DESC LIMIT 1",
+            (patient_id,)
+        ).fetchone()
+        prev_disease  = prev_disease['disease'] if prev_disease else None
+        # Update patient record
+        db.execute(
+            "UPDATE patients SET last_visit=?, visit_count=?, symptoms=?, age=?, gender=? WHERE patient_id=?",
+            (date_str, visit_count, symptoms, age, gender, patient_id)
+        )
+        db.commit()
+    else:
+        # Brand new patient
+        patient_id = 'P' + str(random.randint(10000, 99999))
+        db.execute(
+            "INSERT INTO patients (patient_id, name, age, gender, phone, last_visit, user_id, visit_count, first_visit, symptoms) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (patient_id, patient_name, age, gender, '-', date_str, session['user_id'],
+             1, date_str, symptoms)
+        )
+        db.commit()
+        visit_count = 1
+        first_visit = date_str
+
+    # ── Save diagnosis record ──
     diag_id = 'H' + str(random.randint(10000, 99999))
     db.execute(
-        "INSERT INTO diagnoses (diag_id, patient_id, disease, confidence, risk, explanation, suggestions, image_path, date, user_id) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        (diag_id, patient_id, disease, confidence, risk,
-         explanation, json.dumps(suggestions), image_path, date_str, session['user_id'])
+        "INSERT INTO diagnoses (diag_id, patient_id, disease, confidence, calibrated_confidence, raw_probs, "
+        "risk, explanation, suggestions, image_path, date, user_id, visit_number, symptoms) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (diag_id, patient_id, disease, raw_confidence, cal_confidence,
+         raw_probs_json or '', risk,
+         explanation, json.dumps(suggestions), image_path, date_str, session['user_id'],
+         visit_count, symptoms)
     )
     db.commit()
 
+    # Invalidate calibration cache and recompute in background (non-blocking)
+    invalidate_cache()
+    import threading
+    threading.Thread(target=run_calibration_pipeline, daemon=True).start()
+
     log_action('INFO', session['name'], 'Diagnosis Completed',
-               f"Diagnosis {diag_id} for {patient_name} ({patient_id}): {disease} ({confidence}%)")
+               f"Diagnosis {diag_id} for {patient_name} ({patient_id}) Visit #{visit_count}: {disease} ({raw_confidence}%)")
 
     return jsonify({
-        'success':     True,
-        'diag_id':     diag_id,
-        'patient_id':  patient_id,
-        'disease':     disease,
-        'risk':        risk,
-        'confidence':  confidence,
-        'explanation': explanation,
-        'suggestions': suggestions,
-        'image_url':   '/' + image_path if image_path else '',
-        'date':        date_str,
+        'success':               True,
+        'diag_id':               diag_id,
+        'patient_id':            patient_id,
+        'disease':               disease,
+        'risk':                  risk,
+        'confidence':            raw_confidence,
+        'calibrated_confidence': cal_confidence,
+        'explanation':           explanation,
+        'suggestions':           suggestions,
+        'image_url':             '/' + image_path if image_path else '',
+        'date':                  date_str,
+        'visit_count':           visit_count,
+        'visit_number':          visit_count,
+        'is_returning':          is_returning,
+        'first_visit':           first_visit,
+        'previous_disease':      prev_disease,
+        'symptoms':              symptoms,
     })
 
 # ─────────────────────────────────────────────
@@ -715,6 +848,193 @@ def api_session_user():
     user = db.execute("SELECT id, name, email, role, phone FROM users WHERE id=?",
                       (session['user_id'],)).fetchone()
     return jsonify(dict(user))
+
+# ─────────────────────────────────────────────
+# API — CONFIDENCE CALIBRATION & EVALUATION
+# ─────────────────────────────────────────────
+
+@app.route('/api/calibration/run', methods=['POST'])
+@admin_required
+def api_run_calibration():
+    """Trigger (or re-run) the full calibration pipeline and return results."""
+    invalidate_cache()   # force fresh computation
+    try:
+        result = run_calibration_pipeline()
+        log_action('INFO', session['name'], 'Calibration Run',
+                   f"Calibration pipeline executed. Samples: {result.get('n_samples',0)}, "
+                   f"Calibrated: {result.get('calibrated')}")
+        return jsonify({'success': True, 'result': result})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/calibration/status')
+@admin_required
+def api_calibration_status():
+    cal = get_or_run_calibration()
+    return jsonify({'success': True, 'result': cal})
+
+@app.route('/api/calibration/user-status')
+@login_required
+def api_calibration_user_status():
+    """Return calibration metrics — uses cache only, never blocks on pipeline."""
+    cal = get_cached_calibration()   # fast — returns None or cached result
+    if not cal or not cal.get('calibrated'):
+        return jsonify({'success': True, 'calibrated': False,
+                        'message': cal.get('message', 'Calibration not yet computed.') if cal else 'Not yet computed.'})
+    return jsonify({
+        'success':        True,
+        'calibrated':     True,
+        'ece_before':     cal['ece_before'],
+        'ece_after':      cal['ece_after'],
+        'brier_before':   cal['brier_before'],
+        'brier_after':    cal['brier_after'],
+        'temperature':    cal['temperature'],
+        'n_samples':      cal['n_samples'],
+        'n_test':         cal.get('n_test', 0),
+        'n_cal':          cal.get('n_cal', 0),
+        'eval_date':      cal['eval_date'],
+        'diagram_before': cal.get('diagram_before'),
+        'diagram_after':  cal.get('diagram_after'),
+    })
+
+
+@app.route('/api/calibration/diagnosis/<diag_id>')
+@login_required
+def api_diagnosis_calibration(diag_id):
+    """
+    Return raw and calibrated confidence for a specific diagnosis.
+    Used by the patient report view to show both scores.
+    """
+    db = get_db()
+    if session.get('role') == 'Super Administrator':
+        row = db.execute(
+            "SELECT diag_id, disease, confidence, calibrated_confidence, risk, date "
+            "FROM diagnoses WHERE diag_id=?", (diag_id,)
+        ).fetchone()
+    else:
+        row = db.execute(
+            "SELECT diag_id, disease, confidence, calibrated_confidence, risk, date "
+            "FROM diagnoses WHERE diag_id=? AND user_id=?",
+            (diag_id, session['user_id'])
+        ).fetchone()
+
+    if not row:
+        return jsonify({'success': False, 'message': 'Diagnosis not found'}), 404
+
+    cal = get_cached_calibration()
+    return jsonify({
+        'success':                True,
+        'diag_id':                row['diag_id'],
+        'disease':                row['disease'],
+        'raw_confidence':         row['confidence'],
+        'calibrated_confidence':  row['calibrated_confidence'],
+        'risk':                   row['risk'],
+        'date':                   row['date'],
+        'calibration_available':  cal.get('calibrated', False),
+        'temperature':            cal.get('temperature'),
+        'ece_after':              cal.get('ece_after'),
+    })
+
+# ─────────────────────────────────────────────
+# API — PATIENT VISIT TRACKING & REPORT COMPARISON
+# ─────────────────────────────────────────────
+
+@app.route('/api/patient/<patient_id>/history')
+@login_required
+def api_patient_history(patient_id):
+    """Return full patient profile + all their consultations ordered chronologically."""
+    db = get_db()
+    if session.get('role') == 'Super Administrator':
+        patient = db.execute("SELECT * FROM patients WHERE patient_id=?", (patient_id,)).fetchone()
+    else:
+        patient = db.execute("SELECT * FROM patients WHERE patient_id=? AND user_id=?",
+                             (patient_id, session['user_id'])).fetchone()
+    if not patient:
+        return jsonify({'success': False, 'message': 'Patient not found'}), 404
+
+    diags = db.execute(
+        "SELECT * FROM diagnoses WHERE patient_id=? ORDER BY id ASC",
+        (patient_id,)
+    ).fetchall()
+
+    pat = dict(patient)
+    visits = [dict(d) for d in diags]
+
+    # Enrich each visit with readable suggestions
+    for v in visits:
+        try:
+            v['suggestions_list'] = json.loads(v.get('suggestions', '[]'))
+        except Exception:
+            v['suggestions_list'] = []
+
+    return jsonify({
+        'success': True,
+        'patient': pat,
+        'diagnoses': visits,
+        'total_visits': len(visits),
+    })
+
+
+@app.route('/api/patient/<patient_id>/compare')
+@login_required
+def api_patient_compare(patient_id):
+    """Return the last two consultations for side-by-side comparison."""
+    db = get_db()
+    if session.get('role') == 'Super Administrator':
+        patient = db.execute("SELECT * FROM patients WHERE patient_id=?", (patient_id,)).fetchone()
+    else:
+        patient = db.execute("SELECT * FROM patients WHERE patient_id=? AND user_id=?",
+                             (patient_id, session['user_id'])).fetchone()
+    if not patient:
+        return jsonify({'success': False, 'message': 'Patient not found'}), 404
+
+    diags = db.execute(
+        "SELECT * FROM diagnoses WHERE patient_id=? ORDER BY id ASC",
+        (patient_id,)
+    ).fetchall()
+    visits = [dict(d) for d in diags]
+    for v in visits:
+        try:
+            v['suggestions_list'] = json.loads(v.get('suggestions', '[]'))
+        except Exception:
+            v['suggestions_list'] = []
+
+    if len(visits) < 2:
+        return jsonify({'success': True, 'has_previous': False, 'message': 'Not enough visits for comparison'})
+
+    current  = visits[-1]
+    previous = visits[-2]
+    return jsonify({
+        'success': True,
+        'has_previous': True,
+        'previous': previous,
+        'current': current,
+        'patient': dict(patient),
+    })
+
+
+@app.route('/api/patients/search')
+@login_required
+def api_patients_search():
+    """Search patients by name or patient_id for the returning-patient lookup."""
+    q = request.args.get('q', '').strip().lower()
+    db = get_db()
+    if session.get('role') == 'Super Administrator':
+        rows = db.execute(
+            "SELECT patient_id, name, age, gender, last_visit, visit_count, first_visit "
+            "FROM patients WHERE LOWER(name) LIKE ? OR LOWER(patient_id) LIKE ? "
+            "ORDER BY last_visit DESC LIMIT 20",
+            (f'%{q}%', f'%{q}%')
+        ).fetchall()
+    else:
+        rows = db.execute(
+            "SELECT patient_id, name, age, gender, last_visit, visit_count, first_visit "
+            "FROM patients WHERE user_id=? AND (LOWER(name) LIKE ? OR LOWER(patient_id) LIKE ?) "
+            "ORDER BY last_visit DESC LIMIT 20",
+            (session['user_id'], f'%{q}%', f'%{q}%')
+        ).fetchall()
+    return jsonify([dict(r) for r in rows])
 
 # ─────────────────────────────────────────────
 # ERROR HANDLERS

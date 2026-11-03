@@ -863,4 +863,218 @@ document.addEventListener('DOMContentLoaded', function () {
         if (m) m.remove();
     }
     window.closeFormModal = closeFormModal;
-});
+
+    // ══════════════════════════════════════════════════════
+    // MODEL CONFIDENCE EVALUATION DASHBOARD
+    // ══════════════════════════════════════════════════════
+
+    var _calResult = null;
+
+    function loadCalibrationStatus() {
+        fetch('/api/calibration/status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                _calResult = data.result;
+                renderCalibrationDashboard(_calResult);
+            }
+        })
+        .catch(function() {});
+    }
+
+    function renderCalibrationDashboard(cal) {
+        // Metric cards
+        var setEl = function(id, val) { var e = document.getElementById(id); if (e) e.textContent = val; };
+
+        if (!cal || !cal.calibrated) {
+            var msg = cal ? cal.message : 'Calibration data unavailable.';
+            setEl('cal-status-msg', msg);
+            setEl('cal-raw-ece',    '—');
+            setEl('cal-after-ece',  '—');
+            setEl('cal-raw-brier',  '—');
+            setEl('cal-after-brier','—');
+            setEl('cal-temperature','—');
+            setEl('cal-n-samples',  cal ? cal.n_samples : '—');
+            setEl('cal-eval-date',  cal ? cal.eval_date : '—');
+            setEl('cal-improve-tag','Unavailable');
+            var tagEl = document.getElementById('cal-improve-tag');
+            if (tagEl) { tagEl.style.background='#f1f5f9'; tagEl.style.color='#64748b'; }
+            return;
+        }
+
+        setEl('cal-status-msg',  'Calibration computed successfully using ' + cal.n_test + ' test samples.');
+        setEl('cal-raw-ece',     cal.ece_before.toFixed(4));
+        setEl('cal-after-ece',   cal.ece_after.toFixed(4));
+        setEl('cal-raw-brier',   cal.brier_before.toFixed(4));
+        setEl('cal-after-brier', cal.brier_after.toFixed(4));
+        setEl('cal-temperature', cal.temperature.toFixed(3));
+        setEl('cal-n-samples',   cal.n_samples + ' (Cal: ' + cal.n_cal + ', Test: ' + cal.n_test + ')');
+        setEl('cal-eval-date',   cal.eval_date);
+
+        // Improvement tag
+        var improved = cal.ece_after <= cal.ece_before;
+        var tagEl = document.getElementById('cal-improve-tag');
+        if (tagEl) {
+            tagEl.textContent = improved ? '✓ Calibration Improved ECE' : '⚠ ECE Did Not Improve';
+            tagEl.style.background = improved ? '#dcfce7' : '#fef3c7';
+            tagEl.style.color = improved ? '#15803d' : '#b45309';
+        }
+
+        // Reliability diagram
+        renderReliabilityChart(cal);
+
+        // Comparison bar chart
+        renderComparisonChart(cal);
+    }
+
+    function renderReliabilityChart(cal) {
+        var ctx = document.getElementById('reliabilityChart');
+        if (!ctx) return;
+        var db = cal.diagram_before;
+        var da = cal.diagram_after;
+        if (!db || !da) return;
+        var labels = db.bin_centers.map(function(v) { return (v * 100).toFixed(0) + '%'; });
+        if (window._reliabilityChart) { window._reliabilityChart.destroy(); }
+        window._reliabilityChart = new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Perfect Calibration',
+                        data: db.bin_centers.map(function(v) { return v; }),
+                        borderColor: '#94a3b8',
+                        borderDash: [6, 4],
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0
+                    },
+                    {
+                        label: 'Raw Accuracy',
+                        data: db.avg_acc,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239,68,68,0.1)',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#ef4444',
+                        fill: false,
+                        tension: 0.2
+                    },
+                    {
+                        label: 'Calibrated Accuracy',
+                        data: da.avg_acc,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79,70,229,0.1)',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#4f46e5',
+                        fill: false,
+                        tension: 0.2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'Mean Predicted Confidence', font: { size: 11 } } },
+                    y: { title: { display: true, text: 'Fraction of Correct Predictions', font: { size: 11 } }, min: 0, max: 1 }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return ctx.dataset.label + ': ' + (ctx.raw * 100).toFixed(1) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderComparisonChart(cal) {
+        var ctx = document.getElementById('calComparisonChart');
+        if (!ctx) return;
+        if (window._calCompChart) { window._calCompChart.destroy(); }
+        window._calCompChart = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['ECE', 'Brier Score'],
+                datasets: [
+                    {
+                        label: 'Before Calibration',
+                        data: [cal.ece_before, cal.brier_before],
+                        backgroundColor: 'rgba(239,68,68,0.7)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'After Calibration',
+                        data: [cal.ece_after, cal.brier_after],
+                        backgroundColor: 'rgba(79,70,229,0.7)',
+                        borderColor: '#4f46e5',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Score (lower = better)', font: { size: 11 } } }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // Run calibration button
+    var runCalBtn = document.getElementById('runCalibrationBtn');
+    if (runCalBtn) {
+        runCalBtn.addEventListener('click', function() {
+            runCalBtn.disabled = true;
+            runCalBtn.textContent = 'Running…';
+            setEl('cal-status-msg', 'Running calibration pipeline — this may take a moment…');
+            fetch('/api/calibration/run', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                runCalBtn.disabled = false;
+                runCalBtn.textContent = 'Run Calibration';
+                if (data.success) {
+                    _calResult = data.result;
+                    renderCalibrationDashboard(_calResult);
+                    showToast('Calibration complete!', 'success');
+                } else {
+                    showToast(data.message || 'Calibration failed.', 'error');
+                }
+            })
+            .catch(function(e) {
+                runCalBtn.disabled = false;
+                runCalBtn.textContent = 'Run Calibration';
+                showToast('Error: ' + e.message, 'error');
+            });
+        });
+    }
+
+    function setEl(id, val) { var e = document.getElementById(id); if (e) e.textContent = val; }
+
+    // Load calibration status when admin navigates to that view
+    document.querySelectorAll('.sidebar-menu a').forEach(function(link) {
+        link.addEventListener('click', function() {
+            if (link.getAttribute('data-target') === 'calibration-content') {
+                loadCalibrationStatus();
+            }
+        });
+    });
+
+    // Initial calibration status load (silent)
+    loadCalibrationStatus();
+
+}); // end DOMContentLoaded

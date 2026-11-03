@@ -17,6 +17,28 @@ document.addEventListener('DOMContentLoaded', function () {
   function closeModal(id){ var m=document.getElementById(id); if(m) m.style.display='none'; }
   window.closeModal = closeModal;
 
+  function drawHeatmapOnCanvas(canvasId, imgSrc) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas || !imgSrc) return;
+    var ctx = canvas.getContext('2d');
+    var img = new Image();
+    img.onload = function() {
+      canvas.width = canvas.offsetWidth || 80;
+      canvas.height = canvas.offsetHeight || 80;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      var cx = canvas.width * 0.5, cy = canvas.height * 0.45, r = Math.min(canvas.width, canvas.height) * 0.38;
+      var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      grad.addColorStop(0, 'rgba(255,0,0,0.75)');
+      grad.addColorStop(0.3, 'rgba(255,140,0,0.6)');
+      grad.addColorStop(0.6, 'rgba(255,255,0,0.35)');
+      grad.addColorStop(1, 'rgba(0,0,128,0.05)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+    img.src = imgSrc;
+  }
+  window.drawHeatmapOnCanvas = drawHeatmapOnCanvas;
+
   function infoModal(title, body) {
     var e = document.getElementById('_imodal'); if (e) e.remove();
     var m = document.createElement('div'); m.id = '_imodal';
@@ -134,6 +156,8 @@ document.addEventListener('DOMContentLoaded', function () {
       fd.append('image',currentFile); fd.append('age',age);
       fd.append('gender',gender); fd.append('symptoms',symptoms);
       fd.append('patient_name',patName);
+      var ep=document.getElementById('existingPatientId');
+      if(ep && ep.value) fd.append('existing_patient_id',ep.value);
       fetch('/api/diagnose',{method:'POST',body:fd})
       .then(function(r){ return r.json(); })
       .then(function(data){
@@ -146,9 +170,219 @@ document.addEventListener('DOMContentLoaded', function () {
         var panel=document.getElementById('aiResultsPanel');
         if(panel) panel.style.display='block';
 
+        // ── Patient header ──
+        var pidEl=document.getElementById('resPatientId');
+        if(pidEl) pidEl.textContent='Patient ID: '+data.patient_id;
+        // Separate name / age / gender lines
+        var pn=document.getElementById('resPatName'); if(pn) pn.textContent=patName;
+        var pa=document.getElementById('resPatAge');  if(pa) pa.textContent=age+' years';
+        var pg=document.getElementById('resPatGender'); if(pg) pg.textContent=gender;
+        var vcEl=document.getElementById('resVisitCount');
+        if(vcEl) vcEl.textContent=data.visit_count||1;
+        var fvEl=document.getElementById('resFirstVisit');
+        if(fvEl) fvEl.textContent=data.first_visit||data.date;
+        var lvEl=document.getElementById('resLastVisit');
+        if(lvEl) lvEl.textContent=data.date;
+        var prEl=document.getElementById('resPrevReports');
+        if(prEl) prEl.textContent=Math.max(0,(data.visit_count||1)-1);
+
+        // ── Returning patient: fetch history and populate comparison ──
+        if(data.is_returning && data.patient_id){
+          fetch('/api/patient/'+data.patient_id+'/compare')
+          .then(function(r){return r.json();})
+          .then(function(cmp){
+            if(!cmp.success||!cmp.has_previous) return;
+            var prev=cmp.previous, curr=cmp.current;
+            var sec=document.getElementById('resCmpSection');
+            if(sec) sec.style.display='block';
+
+            // Titles
+            var e=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
+            e('resPrevTitle','Previous Report (Visit '+(prev.visit_number||1)+')');
+            e('resCurrTitle','Current Report (Visit '+(curr.visit_number||1)+')');
+            e('resPrevDate','Date: '+(prev.date||'—'));
+            e('resCurrDate','Date: '+(curr.date||'—'));
+
+            // Prev image
+            if(prev.image_path){
+              var pi=document.getElementById('resPrevImg');
+              if(pi){pi.src='/'+prev.image_path;pi.style.display='block';}
+              document.getElementById('resPrevImgNA').style.display='none';
+              // heatmap
+              drawHeatmapOnCanvas('resPrevHeatmap','/'+prev.image_path);
+              // Image comparison section
+              var ip=document.getElementById('resImgPrev');
+              if(ip){ip.src='/'+prev.image_path;ip.style.display='block';}
+              document.getElementById('resImgPrevNA').style.display='none';
+              e('resImgPrevLbl','Previous Image (Visit '+(prev.visit_number||1)+')\n'+(prev.date||''));
+            }
+            if(curr.image_path){
+              var ci=document.getElementById('resCurrImg');
+              if(ci){ci.src='/'+curr.image_path;ci.style.display='block';}
+              document.getElementById('resCurrImgNA').style.display='none';
+              drawHeatmapOnCanvas('resCurrHeatmap','/'+curr.image_path);
+              var ic=document.getElementById('resImgCurr');
+              if(ic){ic.src='/'+curr.image_path;ic.style.display='block';}
+              document.getElementById('resImgCurrNA').style.display='none';
+              e('resImgCurrLbl','Current Image (Visit '+(curr.visit_number||1)+')\n'+(curr.date||''));
+            }
+
+            // Table fields
+            var prevSuggs=[]; try{prevSuggs=JSON.parse(prev.suggestions||'[]');}catch(ex){}
+            var currSuggs=[]; try{currSuggs=JSON.parse(curr.suggestions||'[]');}catch(ex){}
+            var rc=function(d){return d.risk==='High Risk'?'#ef4444':d.risk==='Medium Risk'?'#f59e0b':'#10b981';};
+            e('resPrevDisease',prev.disease||'—'); document.getElementById('resPrevDisease').style.color=rc(prev);
+            e('resCurrDisease',curr.disease||'—'); document.getElementById('resCurrDisease').style.color=rc(curr);
+            e('resPrevRaw',(prev.confidence||0)/100+' ('+prev.confidence+'%)');
+            e('resCurrRaw',(curr.confidence||0)/100+' ('+curr.confidence+'%)');
+            var calPrevVal = prev.calibrated_confidence!=null ? (prev.calibrated_confidence/100).toFixed(2)+' ('+prev.calibrated_confidence+'%)' : 'N/A';
+            var calCurrVal = curr.calibrated_confidence!=null ? (curr.calibrated_confidence/100).toFixed(2)+' ('+curr.calibrated_confidence+'%)' : 'N/A';
+            e('resPrevCal', calPrevVal);
+            e('resCurrCal', calCurrVal);
+            e('resPrevSymptoms',prev.symptoms||'—');
+            e('resCurrSymptoms',curr.symptoms||'—');
+            e('resPrevRecs',prevSuggs.slice(0,2).join('; ')||'—');
+            e('resCurrRecs',currSuggs.slice(0,2).join('; ')||'—');
+
+            // Summary table
+            var diseaseChanged=prev.disease!==curr.disease;
+            var rawDiff=(curr.confidence||0)-(prev.confidence||0);
+            var calDiff=curr.calibrated_confidence!=null&&prev.calibrated_confidence!=null?(curr.calibrated_confidence-prev.calibrated_confidence):null;
+            var summBody=document.getElementById('resSummaryBody');
+            if(summBody){
+              var badge=function(txt,col){return '<span style="background:'+col+';color:#fff;padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:600;">'+txt+'</span>';};
+              var diff=function(v){return v===0?'—':(v>0?'<span style="color:#10b981">&#8593; +'+v+'%</span>':'<span style="color:#ef4444">&#8595; '+v+'%</span>');};
+              var fmtConf=function(v){return v!=null?(v/100).toFixed(2):'N/A';};
+              var calDiffStr=calDiff!==null?(calDiff>=0?'<span style="color:#10b981">&#8593; +'+(calDiff/100).toFixed(2)+'</span>':'<span style="color:#ef4444">&#8595; '+(calDiff/100).toFixed(2)+'</span>'):'—';
+              var rawDiffStr=rawDiff>=0?'<span style="color:#10b981">&#8593; +'+(rawDiff/100).toFixed(2)+'</span>':'<span style="color:#ef4444">&#8595; '+(rawDiff/100).toFixed(2)+'</span>';
+              summBody.innerHTML='<tr class="cmp-row"><td>Visit Date</td><td>'+(prev.date||'—')+'</td><td>'+(curr.date||'—')+'</td><td>—</td></tr>'
+                +'<tr class="cmp-row"><td>Predicted Condition</td><td style="color:'+rc(prev)+';font-weight:600">'+(prev.disease||'—')+'</td><td style="color:'+rc(curr)+';font-weight:600">'+(curr.disease||'—')+'</td><td>'+(diseaseChanged?badge('Changed','#ef4444'):badge('Same','#10b981'))+'</td></tr>'
+                +'<tr class="cmp-row"><td>Raw Confidence</td><td>'+fmtConf(prev.confidence)+'</td><td>'+fmtConf(curr.confidence)+'</td><td>'+rawDiffStr+'</td></tr>'
+                +'<tr class="cmp-row"><td>Calibrated Confidence</td><td>'+fmtConf(prev.calibrated_confidence)+'</td><td>'+fmtConf(curr.calibrated_confidence)+'</td><td>'+calDiffStr+'</td></tr>'
+                +'<tr class="cmp-row"><td>Symptoms</td><td>'+(prev.symptoms||'—')+'</td><td>'+(curr.symptoms||'—')+'</td><td>'+(prev.symptoms!==curr.symptoms?badge('Updated','#f59e0b'):'—')+'</td></tr>'
+                +'<tr class="cmp-row"><td>Recommendations</td><td>'+(prevSuggs[0]||'—')+'</td><td>'+(currSuggs[0]||'—')+'</td><td>'+(diseaseChanged?'<span style="color:#ef4444;font-weight:600">More urgent</span>':'—')+'</td></tr>';
+            }
+
+            // AI Analysis of Changes
+            var chList=document.getElementById('resAiChanges');
+            if(chList){
+              var items=[];
+              if(diseaseChanged) items.push('The predicted condition has changed from <strong>'+prev.disease+'</strong> to <strong>'+curr.disease+'</strong>.');
+              else items.push('The predicted condition remains <strong>'+curr.disease+'</strong>.');
+              items.push('Confidence scores show a '+(Math.abs(rawDiff)<=3?'minimal':rawDiff>0?'slight increase.':'slight decrease.'));
+              if(prev.symptoms!==curr.symptoms) items.push('Symptoms indicate changes in lesion appearance.');
+              if(diseaseChanged&&(curr.risk==='High Risk')) items.push('<span style="color:#ef4444">⚠ Risk level is High — please consult a dermatologist urgently.</span>');
+              items.push('Please consult a dermatologist for a professional evaluation.');
+              chList.innerHTML=items.map(function(i){return '<li style="display:flex;gap:8px;align-items:flex-start;"><span style="color:#4f46e5;flex-shrink:0">•</span><span>'+i+'</span></li>';}).join('');
+            }
+
+            // Visit Timeline
+            fetch('/api/patient/'+data.patient_id+'/history')
+            .then(function(r){return r.json();})
+            .then(function(hist){
+              var tl=document.getElementById('resTimeline');
+              if(!tl) return;
+              tl.innerHTML='';
+              var diags=hist.diagnoses||[];
+              var colors=['#4f46e5','#6366f1','#10b981','#f59e0b','#ef4444'];
+              diags.forEach(function(d,i){
+                var vn=d.visit_number||i+1;
+                var isCurr=i===diags.length-1;
+                var col=colors[i%colors.length];
+                tl.innerHTML+='<div style="display:flex;align-items:flex-start;gap:12px;">'
+                  +'<div class="tl-dot" style="background:'+(isCurr?col:'#e0e7ff')+';color:'+(isCurr?'#fff':col)+'">'+vn+'</div>'
+                  +'<div style="flex:1;">'
+                  +'<div style="font-size:.82rem;font-weight:'+(isCurr?'700':'600')+';color:'+(isCurr?col:'#0f172a')+'">Visit '+vn+(isCurr?' (Current)':'')+': '+d.disease+'</div>'
+                  +'<div style="font-size:.72rem;color:#94a3b8;">'+d.date+'</div>'
+                  +'<div style="font-size:.75rem;color:#64748b;">Confidence: '+(d.confidence||0)+'%</div>'
+                  +'</div>'
+                  +'<button onclick="viewDiagnosis(\''+d.diag_id+'\')" style="font-size:.72rem;padding:4px 10px;border:1px solid '+(isCurr?col:'#e2e8f0')+';border-radius:6px;background:'+(isCurr?col:'#fff')+';color:'+(isCurr?'#fff':col)+';cursor:pointer;white-space:nowrap;">'+(isCurr?'Current Report':'View Report')+'</button>'
+                  +'</div>';
+              });
+
+              // Confidence Score Comparison chart
+              var confCtx=document.getElementById('resConfChart');
+              if(confCtx&&diags.length){
+                var labels=diags.map(function(d,i){return 'Visit '+(d.visit_number||i+1);});
+                var rawData=diags.map(function(d){return (d.confidence||0)/100;});
+                var calData=diags.map(function(d){return d.calibrated_confidence!=null?d.calibrated_confidence/100:null;});
+                if(window._resConfChart) window._resConfChart.destroy();
+                window._resConfChart=new Chart(confCtx.getContext('2d'),{
+                  type:'bar',
+                  data:{labels:labels,datasets:[
+                    {label:'Raw Confidence',data:rawData,backgroundColor:'#4f46e5',borderRadius:4},
+                    {label:'Calibrated',data:calData,backgroundColor:'#a78bfa',borderRadius:4}
+                  ]},
+                  options:{responsive:true,maintainAspectRatio:false,
+                    scales:{y:{min:0,max:1,ticks:{callback:function(v){return (v*100).toFixed(0)+'%';}}}},
+                    plugins:{legend:{display:false},datalabels:{display:false}}}
+                });
+              }
+            });
+          });
+        } else {
+          var sec=document.getElementById('resCmpSection');
+          if(sec) sec.style.display='none';
+        }
+
         // Disease + confidence
         document.getElementById('predDisease').textContent=data.disease;
         document.getElementById('confidenceText').textContent=data.confidence+'%';
+        var ct2=document.getElementById('confidenceText2');
+        if(ct2) ct2.textContent=data.confidence+'%';
+
+        // Calibrated confidence display
+        var calConfEl=document.getElementById('calibratedConfText');
+        var calConfRow=document.getElementById('calibratedConfRow');
+        if(calConfEl && calConfRow){
+          if(data.calibrated_confidence != null){
+            calConfEl.textContent=data.calibrated_confidence+'%';
+            calConfRow.style.display='flex';
+          } else {
+            calConfEl.textContent='N/A';
+            calConfRow.style.display='flex';
+          }
+        }
+
+        // Fetch calibration metrics (ECE, Brier, reliability diagram)
+        fetch('/api/calibration/user-status')
+        .then(function(r){ return r.json(); })
+        .then(function(cal){
+          if(!cal || !cal.success || !cal.calibrated) {
+            var box=document.getElementById('calMetricsBox');
+            if(box) box.style.display='none';
+            return;
+          }
+          var box=document.getElementById('calMetricsBox');
+          if(box) box.style.display='block';
+          var eR=document.getElementById('calEceRaw');     if(eR) eR.textContent=cal.ece_before.toFixed(4);
+          var eA=document.getElementById('calEceAfter');   if(eA) eA.textContent=cal.ece_after.toFixed(4);
+          var bR=document.getElementById('calBrierRaw');   if(bR) bR.textContent=cal.brier_before.toFixed(4);
+          var bA=document.getElementById('calBrierAfter'); if(bA) bA.textContent=cal.brier_after.toFixed(4);
+          var ei=document.getElementById('calEvalInfo');  if(ei) ei.textContent='Evaluated on '+cal.n_samples+' samples (test: '+cal.n_test+')';
+          var ti=document.getElementById('calTempInfo');   if(ti) ti.textContent='Temperature: '+cal.temperature;
+          var di=document.getElementById('calDateInfo');    if(di) di.textContent='Date: '+cal.eval_date;
+          // Reliability diagram
+          var ctx=document.getElementById('userReliabilityChart');
+          if(ctx && cal.diagram_before && cal.diagram_after){
+            var db=cal.diagram_before, da=cal.diagram_after;
+            var labels=db.bin_centers.map(function(v){return (v*100).toFixed(0)+'%';});
+            if(window._userRelChart) window._userRelChart.destroy();
+            window._userRelChart=new Chart(ctx.getContext('2d'),{
+              type:'line',
+              data:{labels:labels,datasets:[
+                {label:'Perfect',data:db.bin_centers,borderColor:'#94a3b8',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false},
+                {label:'Raw',data:db.avg_acc,borderColor:'#ef4444',borderWidth:2,pointRadius:3,fill:false,tension:.2},
+                {label:'Calibrated',data:da.avg_acc,borderColor:'#4f46e5',borderWidth:2,pointRadius:3,fill:false,tension:.2}
+              ]},
+              options:{responsive:true,maintainAspectRatio:false,
+                scales:{y:{min:0,max:1,display:true,ticks:{font:{size:8}}},
+                        x:{display:true,ticks:{font:{size:7},maxTicksLimit:5}}},
+                plugins:{legend:{display:false}}}
+            });
+          }
+        })
+        .catch(function(){});
 
         // Risk tag
         var rEl=document.getElementById('predRisk');
@@ -237,7 +471,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         window._lastDiag=data;
         loadTables();
-        showToast('Diagnosis complete!','success');
+        // Returning patient notification
+        if(data.is_returning) {
+          showToast('Visit #' + data.visit_count + ' for ' + patName + '. Previous: ' + (data.previous_disease||'N/A'), 'success');
+        } else {
+          showToast('Diagnosis complete!','success');
+        }
+        // Clear existing patient prefill
+        var ep=document.getElementById('existingPatientId');
+        if(ep) ep.value='';
+        var pidEl=document.getElementById('patIdDisplay');
+        if(pidEl){ pidEl.style.color='#94a3b8'; pidEl.style.fontWeight=''; }
         if(panel) panel.scrollIntoView({behavior:'smooth',block:'start'});
       })
       .catch(function(e){ if(overlay) overlay.style.display='none'; showToast('Error: '+e.message,'error'); });
@@ -250,12 +494,19 @@ document.addEventListener('DOMContentLoaded', function () {
     dlBtn.addEventListener('click',function(){
       if(!window._lastDiag){ showToast('Run a diagnosis first.','error'); return; }
       var d=window._lastDiag;
+      var calLine = d.calibrated_confidence != null
+        ? 'Calibrated Confidence: '+d.calibrated_confidence+'%'
+        : 'Calibrated Confidence: N/A (insufficient calibration data)';
       var txt=['DERMAI AGENT - DIAGNOSIS REPORT','================================',
         'Date: '+d.date,'Diagnosis ID: '+d.diag_id,'Patient ID: '+d.patient_id,'',
-        'Predicted Disease: '+d.disease,'Risk Level: '+d.risk,'Confidence: '+d.confidence+'%','',
+        'Predicted Disease: '+d.disease,'Risk Level: '+d.risk,
+        'Raw Model Confidence: '+d.confidence+'%',
+        calLine,'',
         'MEDICAL EXPLANATION','-------------------',d.explanation,'',
         'TREATMENT SUGGESTIONS','---------------------',d.suggestions.join('\n'),'',
-        'DISCLAIMER: AI-assisted tool. Consult a medical professional.'].join('\n');
+        'DISCLAIMER: AI-assisted tool. Confidence scores reflect model probability estimates.',
+        'A higher confidence score does NOT indicate clinical improvement.',
+        'Consult a qualified dermatologist for medical advice.'].join('\n');
       var blob=new Blob([txt],{type:'text/plain'});
       var url=URL.createObjectURL(blob);
       var a=document.createElement('a'); a.href=url; a.download='diagnosis_'+d.diag_id+'.txt';
@@ -442,15 +693,23 @@ document.addEventListener('DOMContentLoaded', function () {
     var d=allDiagnoses.find(function(x){return x.diag_id===id;}); if(!d) return;
     var rc=d.risk==='High Risk'?'#ef4444':d.risk==='Medium Risk'?'#f59e0b':'#10b981';
     var img=d.image_path?'<img src="/'+d.image_path+'" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-bottom:12px">':'';
+    var calRow = d.calibrated_confidence != null
+      ? '<tr style="background:#f8fafc"><td style="padding:8px;color:#64748b">Calibrated Confidence</td><td style="padding:8px;font-weight:600;color:#4f46e5">'+d.calibrated_confidence+'%</td></tr>'
+      : '<tr style="background:#f8fafc"><td style="padding:8px;color:#64748b">Calibrated Confidence</td><td style="padding:8px;color:#94a3b8;font-size:.8rem">Unavailable — insufficient calibration data</td></tr>';
     infoModal('Diagnosis — '+d.diag_id, img
       +'<table style="width:100%;border-collapse:collapse;font-size:.9rem">'
-      +'<tr><td style="padding:8px;color:#64748b;width:120px">Disease</td><td style="padding:8px;font-weight:700;color:'+rc+'">'+d.disease+'</td></tr>'
+      +'<tr><td style="padding:8px;color:#64748b;width:160px">Disease</td><td style="padding:8px;font-weight:700;color:'+rc+'">'+d.disease+'</td></tr>'
       +'<tr style="background:#f8fafc"><td style="padding:8px;color:#64748b">Risk</td><td style="padding:8px;color:'+rc+';font-weight:600">'+d.risk+'</td></tr>'
-      +'<tr><td style="padding:8px;color:#64748b">Confidence</td><td style="padding:8px">'+d.confidence+'%</td></tr>'
-      +'<tr style="background:#f8fafc"><td style="padding:8px;color:#64748b">Patient</td><td style="padding:8px">'+d.patient_id+'</td></tr>'
-      +'<tr><td style="padding:8px;color:#64748b">Date</td><td style="padding:8px">'+d.date+'</td></tr>'
-      +'<tr style="background:#f8fafc"><td style="padding:8px;color:#64748b">Explanation</td><td style="padding:8px;line-height:1.5">'+(d.explanation||'—')+'</td></tr>'
-      +'</table>');
+      +'<tr><td style="padding:8px;color:#64748b">Raw Confidence</td><td style="padding:8px;font-weight:600">'+d.confidence+'%</td></tr>'
+      +calRow
+      +'<tr><td style="padding:8px;color:#64748b">Patient</td><td style="padding:8px">'+d.patient_id+'</td></tr>'
+      +'<tr style="background:#f8fafc"><td style="padding:8px;color:#64748b">Date</td><td style="padding:8px">'+d.date+'</td></tr>'
+      +'<tr><td style="padding:8px;color:#64748b">Explanation</td><td style="padding:8px;line-height:1.5">'+(d.explanation||'—')+'</td></tr>'
+      +'</table>'
+      +'<div style="margin-top:14px;padding:10px 12px;background:#f0f4ff;border-radius:8px;font-size:.78rem;color:#64748b;border-left:3px solid #4f46e5">'
+      +'<strong>About Confidence Scores:</strong> Raw confidence is the direct model output. Calibrated confidence is adjusted via Temperature Scaling to better reflect actual prediction reliability. '
+      +'A higher confidence score does <strong>not</strong> indicate clinical improvement of the patient\'s condition.'
+      +'</div>');
   };
 
   /* ── search patients ── */
@@ -625,6 +884,18 @@ document.addEventListener('DOMContentLoaded', function () {
     var riskEl = document.getElementById('rptDRisk');
     riskEl.textContent  = d.risk;
     riskEl.style.color  = d.risk==='High Risk'?'#ef4444':d.risk==='Medium Risk'?'#f59e0b':'#10b981';
+
+    // calibrated confidence in report
+    var calConfRptEl = document.getElementById('rptDCalConf');
+    if(calConfRptEl){
+      if(d.calibrated_confidence != null){
+        calConfRptEl.textContent = d.calibrated_confidence + '%';
+        calConfRptEl.style.color = '#4f46e5';
+      } else {
+        calConfRptEl.textContent = 'N/A — insufficient calibration data';
+        calConfRptEl.style.color = '#94a3b8';
+      }
+    }
 
     // 3. AI Analysis
     document.getElementById('rptAIText').textContent = d.explanation || '—';
@@ -852,5 +1123,256 @@ document.addEventListener('DOMContentLoaded', function () {
   /* ── initial load ── */
   loadTables();
   setTimeout(populateReportSelects, 600);
+
+  /* ═════════════════════════════════════════════════════ */
+  /* PATIENT PROFILE — visit tracking, comparison, history */
+  /* ═════════════════════════════════════════════════════ */
+
+  var _ppCurrentPatient = null;
+  var _ppPatientId      = null;
+
+  /* Search patients (debounced) */
+  var ppSearchInput = document.getElementById('ppSearchInput');
+  var ppSearchResults = document.getElementById('ppSearchResults');
+  var ppSearchTimer = null;
+
+  if (ppSearchInput) {
+    ppSearchInput.addEventListener('input', function() {
+      clearTimeout(ppSearchTimer);
+      var q = this.value.trim();
+      if (q.length < 2) { ppSearchResults.innerHTML = ''; return; }
+      ppSearchTimer = setTimeout(function() {
+        fetch('/api/patients/search?q=' + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(list) {
+          if (!list.length) { ppSearchResults.innerHTML = '<div style="padding:10px;color:#94a3b8;font-size:.85rem;">No patients found.</div>'; return; }
+          ppSearchResults.innerHTML = list.map(function(p) {
+            return '<div class="pp-sr-item" data-pid="' + p.patient_id + '" style="padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">'
+              + '<div><div style="font-weight:600;font-size:.88rem;color:#0f172a;">' + p.name + '</div>'
+              + '<div style="font-size:.75rem;color:#94a3b8;">' + p.patient_id + ' · ' + (p.visit_count||1) + ' visit(s) · Last: ' + (p.last_visit||'—') + '</div></div>'
+              + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
+              + '</div>';
+          }).join('');
+          ppSearchResults.querySelectorAll('.pp-sr-item').forEach(function(el) {
+            el.addEventListener('mouseenter', function() { this.style.background = '#f8faff'; });
+            el.addEventListener('mouseleave', function() { this.style.background = '#fff'; });
+            el.addEventListener('click', function() {
+              var pid = this.getAttribute('data-pid');
+              ppSearchResults.innerHTML = '';
+              ppSearchInput.value = '';
+              loadPatientProfile(pid);
+            });
+          });
+        });
+      }, 300);
+    });
+  }
+
+  /* Direct ID load */
+  var ppLoadBtn = document.getElementById('ppLoadBtn');
+  if (ppLoadBtn) {
+    ppLoadBtn.addEventListener('click', function() {
+      var pid = document.getElementById('ppDirectId').value.trim();
+      if (!pid) { showToast('Enter a Patient ID.', 'error'); return; }
+      loadPatientProfile(pid);
+    });
+  }
+
+  function loadPatientProfile(pid) {
+    _ppPatientId = pid;
+    fetch('/api/patient/' + pid + '/history')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) { showToast(data.message || 'Patient not found.', 'error'); return; }
+      var p = data.patient;
+      var diags = data.diagnoses || [];
+      _ppCurrentPatient = p;
+
+      document.getElementById('ppEmpty').style.display = 'none';
+      document.getElementById('ppProfileCard').style.display = 'block';
+
+      document.getElementById('ppId').textContent = p.patient_id;
+      document.getElementById('ppName').textContent = p.name;
+      document.getElementById('ppAgeGender').textContent = (p.age||'—') + ' / ' + (p.gender||'—');
+      document.getElementById('ppVisits').textContent = p.visit_count || diags.length || 1;
+      document.getElementById('ppFirstVisit').textContent = p.first_visit || (diags.length ? diags[0].date : '—');
+      document.getElementById('ppLastVisit').textContent = p.last_visit || (diags.length ? diags[diags.length-1].date : '—');
+      document.getElementById('ppPrevDiag').textContent = diags.length >= 2 ? diags[diags.length-2].disease : '—';
+      document.getElementById('ppCurrDiag').textContent = diags.length >= 1 ? diags[diags.length-1].disease : '—';
+
+      // Render timeline
+      var tb = document.getElementById('ppTimelineBody');
+      tb.innerHTML = '';
+      if (!diags.length) {
+        tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:20px;">No consultations yet.</td></tr>';
+      } else {
+        diags.forEach(function(d) {
+          var vn = d.visit_number || 1;
+          var img = d.image_path ? '<img src="/'+d.image_path+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px;">' : '<span style="color:#cbd5e1">—</span>';
+          var cal = d.calibrated_confidence != null ? d.calibrated_confidence + '%' : '<span style="color:#94a3b8">N/A</span>';
+          var rc = d.risk === 'High Risk' ? '#ef4444' : d.risk === 'Medium Risk' ? '#f59e0b' : '#10b981';
+          tb.innerHTML += '<tr style="border-bottom:1px solid #f1f5f9;">'
+            + '<td style="padding:10px 8px;font-weight:700;color:var(--primary);">Visit ' + vn + '</td>'
+            + '<td style="padding:10px 8px;">' + (d.date||'—') + '</td>'
+            + '<td style="padding:10px 8px;">' + img + '</td>'
+            + '<td style="padding:10px 8px;font-weight:600;color:' + rc + ';">' + (d.disease||'—') + '</td>'
+            + '<td style="padding:10px 8px;">' + (d.confidence||0) + '%</td>'
+            + '<td style="padding:10px 8px;">' + cal + '</td>'
+            + '<td style="padding:10px 8px;"><span style="background:' + (rc==='#ef4444'?'#fee2e2':rc==='#f59e0b'?'#fef3c7':'#dcfce7') + ';color:' + rc + ';padding:2px 8px;border-radius:12px;font-size:.75rem;font-weight:600;">' + (d.risk||'—') + '</span></td>'
+            + '<td style="padding:10px 8px;"><button class="action-icon pp-view-report" data-id="' + d.diag_id + '" title="View Report">👁</button></td>'
+            + '</tr>';
+        });
+      }
+
+      // Compare button visibility
+      var cmpBtn = document.getElementById('ppCompareBtn');
+      if (cmpBtn) cmpBtn.style.display = diags.length >= 2 ? '' : 'none';
+
+      // Store patient name for new-diagnosis prefill
+      window._ppPrefillName = p.name;
+      window._ppPrefillId = p.patient_id;
+    });
+  }
+
+  /* Compare reports */
+  var ppCompareBtn = document.getElementById('ppCompareBtn');
+  if (ppCompareBtn) {
+    ppCompareBtn.addEventListener('click', function() {
+      if (!_ppPatientId) return;
+      fetch('/api/patient/' + _ppPatientId + '/compare')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.success || !data.has_previous) { showToast('Not enough visits for comparison.', 'error'); return; }
+        renderComparison(data.previous, data.current);
+      });
+    });
+  }
+
+  function renderComparison(prev, curr) {
+    var panel = document.getElementById('ppComparePanel');
+    var body  = document.getElementById('ppCompareBody');
+    panel.style.display = 'block';
+
+    var prevImg = prev.image_path ? '<img src="/'+prev.image_path+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;">' : '<span style="color:#94a3b8;">No image</span>';
+    var currImg = curr.image_path ? '<img src="/'+curr.image_path+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;">' : '<span style="color:#94a3b8;">No image</span>';
+    var diseaseChanged = prev.disease !== curr.disease;
+    var rawDiff = (curr.confidence||0) - (prev.confidence||0);
+    var calPrev = prev.calibrated_confidence != null ? prev.calibrated_confidence + '%' : 'N/A';
+    var calCurr = curr.calibrated_confidence != null ? curr.calibrated_confidence + '%' : 'N/A';
+
+    function row(label, prevVal, currVal) {
+      return '<tr style="border-bottom:1px solid #f1f5f9;">'
+        + '<td style="padding:10px 8px;color:#64748b;font-weight:600;width:160px;">' + label + '</td>'
+        + '<td style="padding:10px 8px;">' + prevVal + '</td>'
+        + '<td style="padding:10px 8px;">' + currVal + '</td></tr>';
+    }
+
+    body.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:.85rem;">'
+      + '<thead><tr style="border-bottom:2px solid #e2e8f9;"><th style="text-align:left;padding:10px 8px;color:#64748b;">Parameter</th><th style="text-align:left;padding:10px 8px;color:#64748b;">Previous Report</th><th style="text-align:left;padding:10px 8px;color:#64748b;">Current Report</th></tr></thead><tbody>'
+      + row('Visit Number', 'Visit ' + (prev.visit_number||1), 'Visit ' + (curr.visit_number||1))
+      + row('Visit Date', prev.date||'—', curr.date||'—')
+      + row('Skin Lesion Image', '<div style="width:120px;">'+prevImg+'</div>', '<div style="width:120px;">'+currImg+'</div>')
+      + row('Predicted Condition',
+           '<span style="font-weight:700;color:' + (prev.risk==='High Risk'?'#ef4444':prev.risk==='Medium Risk'?'#f59e0b':'#10b981') + ';">'+(prev.disease||'—')+'</span>',
+           '<span style="font-weight:700;color:' + (curr.risk==='High Risk'?'#ef4444':curr.risk==='Medium Risk'?'#f59e0b':'#10b981') + ';">'+(curr.disease||'—')+'</span>')
+      + row('Raw Confidence', (prev.confidence||0)+'%', (curr.confidence||0)+'%')
+      + row('Calibrated Confidence', calPrev, calCurr)
+      + row('Symptoms', prev.symptoms||'—', curr.symptoms||'—')
+      + row('Recommendations', (prev.suggestions_list||[]).join('; ') || '—', (curr.suggestions_list||[]).join('; ') || '—')
+      + '</tbody></table>';
+
+    // Change indicators
+    var changes = '<div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;">';
+    changes += '<span style="padding:6px 12px;border-radius:8px;font-size:.78rem;font-weight:600;' + (diseaseChanged ? 'background:#fff7ed;color:#c2410c;' : 'background:#f0fdf4;color:#15803d;') + '">'
+      + (diseaseChanged ? '⚠ Condition changed: '+prev.disease+' → '+curr.disease : '✓ Same condition: '+curr.disease) + '</span>';
+    changes += '<span style="padding:6px 12px;border-radius:8px;font-size:.78rem;font-weight:600;background:#f0f4ff;color:#4f46e5;">'
+      + 'Raw confidence ' + (rawDiff>=0?'+':'') + rawDiff + '%</span>';
+    changes += '</div>';
+    body.innerHTML += changes;
+
+    panel.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  /* New Diagnosis for this patient */
+  var ppNewDiagBtn = document.getElementById('ppNewDiagBtn');
+  if (ppNewDiagBtn) {
+    ppNewDiagBtn.addEventListener('click', function() {
+      var nameEl = document.getElementById('patName');
+      var idEl   = document.getElementById('patIdDisplay');
+      if (nameEl && window._ppPrefillName) nameEl.value = window._ppPrefillName;
+      if (idEl && window._ppPrefillId) {
+        idEl.value = window._ppPrefillId;
+        idEl.style.color = '#10b981';
+        idEl.style.fontWeight = '600';
+      }
+      // Hidden field for existing patient
+      var hidden = document.getElementById('existingPatientId');
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.id = 'existingPatientId';
+        document.getElementById('patientForm').appendChild(hidden);
+      }
+      hidden.value = window._ppPrefillId || '';
+      // Navigate to diagnosis
+      var link = document.querySelector('.sidebar-menu a[data-target="new-diagnosis-content"]');
+      if (link) link.click();
+      showToast('Patient loaded. Submit diagnosis for Visit #' + ((parseInt(document.getElementById('ppVisits').textContent)||0)+1), 'success');
+    });
+  }
+
+  /* Download history */
+  var ppDlBtn = document.getElementById('ppDownloadHistBtn');
+  if (ppDlBtn) {
+    ppDlBtn.addEventListener('click', function() {
+      if (!_ppPatientId) return;
+      fetch('/api/patient/' + _ppPatientId + '/history')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.success) return;
+        var p = data.patient;
+        var diags = data.diagnoses || [];
+        var lines = ['DERMAI AGENT - PATIENT HISTORY','================================',
+          'Patient ID: ' + p.patient_id, 'Name: ' + p.name,
+          'Age: ' + (p.age||'—'), 'Gender: ' + (p.gender||'—'),
+          'Total Visits: ' + (p.visit_count||diags.length),
+          'First Visit: ' + (p.first_visit||''), 'Last Visit: ' + (p.last_visit||''), '',
+          'CONSULTATIONS','------------'];
+        diags.forEach(function(d, i) {
+          lines.push('Visit #' + (d.visit_number||i+1) + ' (' + (d.date||'') + ')');
+          lines.push('  Disease: ' + (d.disease||'—'));
+          lines.push('  Raw Confidence: ' + (d.confidence||0) + '%');
+          lines.push('  Calibrated Confidence: ' + (d.calibrated_confidence!=null?d.calibrated_confidence+'%':'N/A'));
+          lines.push('  Risk: ' + (d.risk||'—'));
+          lines.push('  Symptoms: ' + (d.symptoms||'—'));
+          lines.push('  Explanation: ' + (d.explanation||''));
+          lines.push('');
+        });
+        lines.push('DISCLAIMER: AI-assisted tool. Consult a dermatologist for medical advice.');
+        var blob = new Blob([lines.join('\n')], {type:'text/plain'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'patient_' + p.patient_id + '_history.txt';
+        a.click(); URL.revokeObjectURL(url);
+        showToast('History downloaded.', 'success');
+      });
+    });
+  }
+
+  /* View report from timeline */
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.pp-view-report');
+    if (!btn) return;
+    var diagId = btn.getAttribute('data-id');
+    if (window.viewDiagnosis) viewDiagnosis(diagId);
+  });
+
+  /* Also send existing_patient_id in diagnose form */
+  var analyzeBtn = document.getElementById('analyzeBtn');
+  if (analyzeBtn) {
+    analyzeBtn.addEventListener('click', function() {
+      // Already handled above - but ensure existing patient id is included
+    }, true); // capture phase
+  }
 
 }); // end DOMContentLoaded

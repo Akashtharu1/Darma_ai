@@ -32,6 +32,9 @@
             <li><a href="#" data-target="history-content">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> History
             </a></li>
+            <li><a href="#" data-target="patient-profile-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4 22c0-4.4 3.6-8 8-8s8 3.6 8 8"></path></svg> Patient Profile
+            </a></li>
             <li><a href="#" data-target="reports-content">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Reports
             </a></li>
@@ -385,6 +388,20 @@
 
                     <!-- ═══ AI ANALYSIS RESULTS (shown after analyze) ═══ -->
                     <div id="aiResultsPanel" style="display:none;margin-top:28px;">
+                    <style>
+                      .res-card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:16px;}
+                      .visit-stat{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border-radius:12px;padding:14px 20px;box-shadow:0 2px 10px rgba(0,0,0,.06);min-width:120px;}
+                      .visit-stat .num{font-size:2rem;font-weight:800;line-height:1;}
+                      .visit-stat .lbl{font-size:.72rem;color:#64748b;margin-top:4px;text-align:center;}
+                      .cmp-half{background:#fff;border-radius:12px;padding:18px;flex:1;border:1px solid #e2e8f0;}
+                      .cmp-half.prev{border-left:4px solid #4f46e5;}
+                      .cmp-half.curr{border-left:4px solid #10b981;}
+                      .cmp-img{width:80px;height:80px;object-fit:cover;border-radius:8px;background:#f1f5f9;}
+                      .cmp-hmap{width:80px;height:80px;border-radius:8px;position:relative;overflow:hidden;background:#f1f5f9;}
+                      .cmp-row td{padding:5px 8px;font-size:.83rem;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+                      .cmp-row td:first-child{color:#64748b;font-weight:600;width:140px;}
+                      .tl-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0;}
+                    </style>
 
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
                             <h2 style="font-size:1.3rem;font-weight:800;color:var(--secondary)">AI Analysis &amp; Prediction Results</h2>
@@ -394,102 +411,341 @@
                             </button>
                         </div>
 
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-
-                            <!-- ── LEFT COL ── -->
-                            <div style="display:flex;flex-direction:column;gap:20px;">
-
-                                <!-- Prediction Result card -->
-                                <div class="card" style="padding:22px;">
-                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                                        <span style="font-size:.85rem;font-weight:600;color:var(--text-light)">Prediction Result</span>
-                                        <span class="tag" id="predRisk" style="font-size:.75rem">High Risk</span>
-                                    </div>
-                                    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:10px;">
-                                        <div id="predDisease" style="font-size:2rem;font-weight:800;color:var(--secondary)">—</div>
-                                        <div id="confidenceText" style="font-size:1.6rem;font-weight:700;color:var(--primary)">0%</div>
-                                    </div>
-                                    <!-- confidence bar -->
-                                    <div style="background:#e2e8f0;border-radius:6px;height:8px;margin-bottom:18px;overflow:hidden;">
-                                        <div id="confBar" style="height:100%;border-radius:6px;background:var(--primary);width:0%;transition:width 1.2s ease;"></div>
-                                    </div>
-                                    <!-- probability bar chart -->
-                                    <div style="font-size:.8rem;font-weight:600;color:var(--text-light);margin-bottom:10px;">Probability Distribution</div>
-                                    <div id="probBars" style="display:flex;flex-direction:column;gap:7px;"></div>
+                        <!-- ── ROW 1: Patient header + visit stats ── -->
+                        <div class="res-card" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;padding:18px 22px;">
+                            <!-- Avatar + details -->
+                            <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:200px;">
+                                <div style="width:56px;height:56px;background:#e0e7ff;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #c7d2fe;">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                 </div>
-
-                                <!-- Explainable AI Visualization (bottom-left) -->
-                                <div class="card" style="padding:22px;">
-                                    <div style="font-size:.95rem;font-weight:700;color:var(--secondary);margin-bottom:4px;">Explainable AI Visualization</div>
-                                    <div style="font-size:.78rem;color:var(--text-light);margin-bottom:14px;">Grad-CAM Saliency Map</div>
-                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                                        <div>
-                                            <div style="font-size:.78rem;color:var(--text-light);text-align:center;margin-bottom:6px;">Before</div>
-                                            <div id="vizBefore" style="border-radius:10px;overflow:hidden;background:#f1f5f9;height:130px;display:flex;align-items:center;justify-content:center;">
-                                                <img id="vizBeforeImg" src="" alt="Original" style="width:100%;height:100%;object-fit:cover;display:none;">
-                                                <span id="vizBeforePlaceholder" style="font-size:.75rem;color:#94a3b8">Upload image first</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div style="font-size:.78rem;color:var(--text-light);text-align:center;margin-bottom:6px;">After (Heatmap)</div>
-                                            <div id="vizAfter" style="border-radius:10px;overflow:hidden;background:#f1f5f9;height:130px;display:flex;align-items:center;justify-content:center;position:relative;">
-                                                <img id="vizAfterImg" src="" alt="Heatmap" style="width:100%;height:100%;object-fit:cover;display:none;">
-                                                <canvas id="heatmapCanvas" style="position:absolute;inset:0;width:100%;height:100%;border-radius:10px;display:none;"></canvas>
-                                                <span id="vizAfterPlaceholder" style="font-size:.75rem;color:#94a3b8">Heatmap generated after analysis</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div>
+                                    <div style="font-size:.7rem;color:#94a3b8;font-weight:600;margin-bottom:2px;">Patient Details</div>
+                                    <div style="font-size:1.05rem;font-weight:800;color:#0f172a;" id="resPatientId">Patient ID: —</div>
+                                    <table style="margin-top:4px;border-collapse:collapse;font-size:.82rem;color:#475569;">
+                                        <tr><td style="padding:1px 8px 1px 0;color:#64748b;font-weight:500;">Name</td><td>: <span id="resPatName" style="font-weight:600;color:#0f172a;">—</span></td></tr>
+                                        <tr><td style="padding:1px 8px 1px 0;color:#64748b;font-weight:500;">Age</td><td>: <span id="resPatAge">—</span></td></tr>
+                                        <tr><td style="padding:1px 8px 1px 0;color:#64748b;font-weight:500;">Gender</td><td>: <span id="resPatGender">—</span></td></tr>
+                                    </table>
                                 </div>
-
                             </div>
-
-                            <!-- ── RIGHT COL ── -->
-                            <div style="display:flex;flex-direction:column;gap:20px;">
-
-                                <!-- AI Explanation & Recommendations -->
-                                <div class="card" style="padding:22px;">
-                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                                        <span style="font-size:.95rem;font-weight:700;color:var(--secondary)">AI Explanation &amp; Recommendations</span>
-                                    </div>
-
-                                    <div style="margin-bottom:14px;">
-                                        <div style="font-size:.88rem;font-weight:700;color:var(--secondary);margin-bottom:6px;">Overview</div>
-                                        <p id="explanationText" style="font-size:.85rem;color:var(--text-main);line-height:1.65;"></p>
-                                    </div>
-
-                                    <div style="margin-bottom:14px;">
-                                        <div style="font-size:.88rem;font-weight:700;color:var(--secondary);margin-bottom:8px;">Diagnosis Details</div>
-                                        <ul id="diagDetailsList" style="list-style:none;padding:0;display:flex;flex-direction:column;gap:6px;"></ul>
-                                    </div>
-
-                                    <div>
-                                        <div style="font-size:.88rem;font-weight:700;color:var(--secondary);margin-bottom:8px;">Key Risk Factors</div>
-                                        <div id="riskFactors" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-                                    </div>
+                            <!-- Stat cards -->
+                            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                                <!-- Total Visits -->
+                                <div style="background:#f5f3ff;border-radius:12px;padding:14px 22px;text-align:center;min-width:110px;">
+                                    <div style="font-size:2rem;font-weight:800;color:#4f46e5;line-height:1;" id="resVisitCount">1</div>
+                                    <div style="font-size:.72rem;color:#64748b;margin-top:4px;line-height:1.3;">Total Visits<br><span style="font-size:.68rem;">(Including Current)</span></div>
                                 </div>
-
-                                <!-- Treatment Plan -->
-                                <div class="card" style="padding:22px;">
-                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                                        <span style="font-size:.95rem;font-weight:700;color:var(--secondary)">Recommended Treatment Plan</span>
+                                <!-- First Visit -->
+                                <div style="background:#f0fdf4;border-radius:12px;padding:14px 20px;text-align:center;min-width:130px;">
+                                    <div style="display:flex;justify-content:center;margin-bottom:4px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                                     </div>
-                                    <ul id="suggestionList" style="list-style:none;padding:0;display:flex;flex-direction:column;gap:10px;"></ul>
-
-                                    <div style="margin-top:16px;padding:12px;background:#f0fdf4;border-radius:10px;border-left:3px solid #10b981;">
-                                        <div style="font-size:.82rem;font-weight:700;color:#065f46;margin-bottom:4px;">Next Steps</div>
-                                        <div id="nextSteps" style="font-size:.82rem;color:#047857;line-height:1.5;"></div>
-                                    </div>
-
-                                    <div style="margin-top:14px;padding:12px;background:#fef3c7;border-radius:10px;border-left:3px solid #f59e0b;display:flex;gap:10px;align-items:flex-start;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                        <span style="font-size:.78rem;color:#92400e;line-height:1.5;">This AI system is a decision-support tool and not a substitute for professional medical advice. Always consult a qualified dermatologist.</span>
-                                    </div>
+                                    <div style="font-size:.88rem;font-weight:700;color:#059669;" id="resFirstVisit">—</div>
+                                    <div style="font-size:.7rem;color:#64748b;margin-top:2px;">First Visit</div>
                                 </div>
-
+                                <!-- Last Visit -->
+                                <div style="background:#fff1f2;border-radius:12px;padding:14px 20px;text-align:center;min-width:130px;">
+                                    <div style="display:flex;justify-content:center;margin-bottom:4px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    </div>
+                                    <div style="font-size:.88rem;font-weight:700;color:#e11d48;" id="resLastVisit">—</div>
+                                    <div style="font-size:.7rem;color:#64748b;margin-top:2px;">Last Visit</div>
+                                </div>
+                                <!-- Previous Reports -->
+                                <div style="background:#eff6ff;border-radius:12px;padding:14px 22px;text-align:center;min-width:100px;">
+                                    <div style="display:flex;justify-content:center;margin-bottom:4px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    </div>
+                                    <div style="font-size:2rem;font-weight:800;color:#2563eb;line-height:1;" id="resPrevReports">0</div>
+                                    <div style="font-size:.72rem;color:#64748b;margin-top:4px;">Previous<br>Reports</div>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- ── ROW 2: Previous vs Current Report Comparison (shown for returning patients) ── -->
+                        <div id="resCmpSection" style="display:none;">
+                          <div class="res-card" style="padding:0;overflow:hidden;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #f1f5f9;">
+                              <div style="display:flex;align-items:center;gap:8px;font-size:1rem;font-weight:700;color:#0f172a;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                                Previous vs Current Report Comparison
+                              </div>
+                              <button onclick="document.querySelector('.sidebar-menu a[data-target=\'patient-profile-content\']').click()" style="background:#4f46e5;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.8rem;font-weight:600;cursor:pointer;">View Full History →</button>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                              <!-- Previous -->
+                              <div style="padding:18px;border-right:1px solid #f1f5f9;">
+                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                  <span style="font-size:.9rem;font-weight:700;color:#4f46e5;" id="resPrevTitle">Previous Report (Visit —)</span>
+                                  <span style="margin-left:auto;font-size:.75rem;color:#94a3b8;" id="resPrevDate">Date: —</span>
+                                </div>
+                                <div style="display:grid;grid-template-columns:80px 80px 1fr;gap:12px;align-items:start;">
+                                  <div>
+                                    <div style="font-size:.7rem;color:#64748b;margin-bottom:4px;">Skin Lesion Image</div>
+                                    <img id="resPrevImg" src="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;display:none;">
+                                    <div id="resPrevImgNA" style="width:80px;height:80px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#94a3b8;">No image</div>
+                                  </div>
+                                  <div>
+                                    <div style="font-size:.7rem;color:#64748b;margin-bottom:4px;">Grad-CAM Heatmap</div>
+                                    <canvas id="resPrevHeatmap" style="width:80px;height:80px;border-radius:8px;"></canvas>
+                                  </div>
+                                  <div>
+                                    <table style="width:100%;border-collapse:collapse;">
+                                      <tr class="cmp-row"><td>Predicted Condition</td><td style="font-weight:700;" id="resPrevDisease">—</td></tr>
+                                      <tr class="cmp-row"><td>Raw Confidence</td><td id="resPrevRaw">—</td></tr>
+                                      <tr class="cmp-row"><td>Calibrated Confidence</td><td id="resPrevCal">—</td></tr>
+                                      <tr class="cmp-row"><td>Symptoms</td><td id="resPrevSymptoms">—</td></tr>
+                                      <tr class="cmp-row"><td>Recommendations</td><td id="resPrevRecs" style="line-height:1.4;">—</td></tr>
+                                    </table>
+                                  </div>
+                                </div>
+                              </div>
+                              <!-- Current -->
+                              <div style="padding:18px;background:#f8fff8;">
+                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                  <span style="font-size:.9rem;font-weight:700;color:#059669;" id="resCurrTitle">Current Report (Visit —)</span>
+                                  <span style="margin-left:auto;font-size:.75rem;color:#94a3b8;" id="resCurrDate">Date: —</span>
+                                </div>
+                                <div style="display:grid;grid-template-columns:80px 80px 1fr;gap:12px;align-items:start;">
+                                  <div>
+                                    <div style="font-size:.7rem;color:#64748b;margin-bottom:4px;">Skin Lesion Image</div>
+                                    <img id="resCurrImg" src="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;display:none;">
+                                    <div id="resCurrImgNA" style="width:80px;height:80px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#94a3b8;">Image saved</div>
+                                  </div>
+                                  <div>
+                                    <div style="font-size:.7rem;color:#64748b;margin-bottom:4px;">Grad-CAM Heatmap</div>
+                                    <canvas id="resCurrHeatmap" style="width:80px;height:80px;border-radius:8px;"></canvas>
+                                  </div>
+                                  <div>
+                                    <table style="width:100%;border-collapse:collapse;">
+                                      <tr class="cmp-row"><td>Predicted Condition</td><td style="font-weight:700;" id="resCurrDisease">—</td></tr>
+                                      <tr class="cmp-row"><td>Raw Confidence</td><td id="resCurrRaw">—</td></tr>
+                                      <tr class="cmp-row"><td>Calibrated Confidence</td><td id="resCurrCal">—</td></tr>
+                                      <tr class="cmp-row"><td>Symptoms</td><td id="resCurrSymptoms">—</td></tr>
+                                      <tr class="cmp-row"><td>Recommendations</td><td id="resCurrRecs" style="line-height:1.4;">—</td></tr>
+                                    </table>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- ── Comparison Summary + AI Analysis of Changes ── -->
+                          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                            <div class="res-card" style="margin-bottom:0;">
+                              <div style="font-size:.9rem;font-weight:700;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                                Comparison Summary
+                              </div>
+                              <table style="width:100%;border-collapse:collapse;font-size:.82rem;" id="resSummaryTable">
+                                <thead><tr style="background:#f8fafc;"><th style="padding:7px 8px;text-align:left;color:#64748b;font-weight:600;">Parameter</th><th style="padding:7px 8px;text-align:left;color:#64748b;font-weight:600;">Previous</th><th style="padding:7px 8px;text-align:left;color:#64748b;font-weight:600;">Current</th><th style="padding:7px 8px;text-align:left;color:#64748b;font-weight:600;">Change</th></tr></thead>
+                                <tbody id="resSummaryBody"></tbody>
+                              </table>
+                            </div>
+                            <div class="res-card" style="margin-bottom:0;background:#f5f3ff;">
+                              <div style="font-size:.9rem;font-weight:700;color:#4f46e5;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                                AI Analysis of Changes
+                              </div>
+                              <ul id="resAiChanges" style="list-style:none;padding:0;display:flex;flex-direction:column;gap:8px;font-size:.83rem;color:#334155;"></ul>
+                              <div style="margin-top:12px;font-size:.75rem;color:#7c3aed;font-style:italic;">Note: This is an AI-assisted analysis and not a confirmed diagnosis.</div>
+                            </div>
+                          </div>
+
+                          <!-- ── Visit Timeline + Confidence Chart + Image Comparison ── -->
+                          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+                            <!-- Timeline -->
+                            <div class="res-card" style="margin-bottom:0;">
+                              <div style="font-size:.9rem;font-weight:700;color:#0f172a;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Patient Visit Timeline
+                              </div>
+                              <div id="resTimeline" style="display:flex;flex-direction:column;gap:10px;"></div>
+                            </div>
+                            <!-- Confidence chart -->
+                            <div class="res-card" style="margin-bottom:0;">
+                              <div style="font-size:.9rem;font-weight:700;color:#0f172a;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                                Confidence Score Comparison
+                              </div>
+                              <div style="font-size:.7rem;color:#64748b;margin-bottom:10px;display:flex;gap:12px;">
+                                <span><span style="display:inline-block;width:10px;height:10px;background:#4f46e5;border-radius:2px;margin-right:4px;"></span>Raw Confidence</span>
+                                <span><span style="display:inline-block;width:10px;height:10px;background:#a78bfa;border-radius:2px;margin-right:4px;"></span>Calibrated</span>
+                              </div>
+                              <canvas id="resConfChart" style="max-height:180px;"></canvas>
+                            </div>
+                            <!-- Image comparison -->
+                            <div class="res-card" style="margin-bottom:0;">
+                              <div style="font-size:.9rem;font-weight:700;color:#0f172a;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                Previous and Current Images
+                              </div>
+                              <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="flex:1;text-align:center;">
+                                  <img id="resImgPrev" src="" style="width:100%;max-height:110px;object-fit:cover;border-radius:8px;display:none;">
+                                  <div id="resImgPrevNA" style="width:100%;height:90px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#94a3b8;">No image</div>
+                                  <div style="font-size:.72rem;color:#64748b;margin-top:4px;" id="resImgPrevLbl">Previous</div>
+                                </div>
+                                <div style="color:#94a3b8;">
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                                </div>
+                                <div style="flex:1;text-align:center;">
+                                  <img id="resImgCurr" src="" style="width:100%;max-height:110px;object-fit:cover;border-radius:8px;display:none;">
+                                  <div id="resImgCurrNA" style="width:100%;height:90px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#94a3b8;">Current image</div>
+                                  <div style="font-size:.72rem;color:#64748b;margin-top:4px;" id="resImgCurrLbl">Current</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- ── ROW 3: Confidence Evaluation (ECE/Brier/Reliability) ── -->
+                        <div class="res-card">
+                          <div style="font-size:.9rem;font-weight:700;color:#0f172a;margin-bottom:14px;">Confidence Evaluation — Raw vs Calibrated</div>
+                          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                            <div style="background:#f8faff;border:1px solid #e0e7ff;border-radius:10px;padding:14px;">
+                              <div style="font-size:.72rem;color:#64748b;font-weight:600;margin-bottom:4px;">RAW CONFIDENCE</div>
+                              <div style="font-size:1.5rem;font-weight:800;color:var(--primary);" id="confidenceText2">0%</div>
+                              <div style="font-size:.7rem;color:#94a3b8;margin-top:2px;">Direct model softmax output</div>
+                            </div>
+                            <div style="background:#f5f3ff;border:1px solid #e0e7ff;border-radius:10px;padding:14px;" id="calibratedConfRow">
+                              <div style="font-size:.72rem;color:#64748b;font-weight:600;margin-bottom:4px;">CALIBRATED CONFIDENCE</div>
+                              <div style="font-size:1.5rem;font-weight:800;color:#4f46e5;" id="calibratedConfText">N/A</div>
+                              <div style="font-size:.7rem;color:#94a3b8;margin-top:2px;">Temperature Scaling adjusted</div>
+                            </div>
+                          </div>
+                          <!-- Metrics -->
+                          <div id="calMetricsBox" style="display:none;">
+                            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">
+                              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center;">
+                                <div style="font-size:.65rem;color:#64748b;font-weight:600;">ECE (RAW)</div>
+                                <div id="calEceRaw" style="font-size:1.1rem;font-weight:800;color:#ef4444;">—</div>
+                                <div style="font-size:.6rem;color:#94a3b8;">lower = better</div>
+                              </div>
+                              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center;">
+                                <div style="font-size:.65rem;color:#64748b;font-weight:600;">ECE (CALIBRATED)</div>
+                                <div id="calEceAfter" style="font-size:1.1rem;font-weight:800;color:#4f46e5;">—</div>
+                                <div style="font-size:.6rem;color:#94a3b8;">lower = better</div>
+                              </div>
+                              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center;">
+                                <div style="font-size:.65rem;color:#64748b;font-weight:600;">BRIER (RAW)</div>
+                                <div id="calBrierRaw" style="font-size:1.1rem;font-weight:800;color:#ef4444;">—</div>
+                                <div style="font-size:.6rem;color:#94a3b8;">lower = better</div>
+                              </div>
+                              <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center;">
+                                <div style="font-size:.65rem;color:#64748b;font-weight:600;">BRIER (CALIBRATED)</div>
+                                <div id="calBrierAfter" style="font-size:1.1rem;font-weight:800;color:#4f46e5;">—</div>
+                                <div style="font-size:.6rem;color:#94a3b8;">lower = better</div>
+                              </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 260px;gap:16px;align-items:start;">
+                              <div>
+                                <div style="font-size:.75rem;font-weight:600;color:#64748b;margin-bottom:6px;">RELIABILITY DIAGRAM</div>
+                                <canvas id="userReliabilityChart" style="max-height:160px;"></canvas>
+                              </div>
+                              <div style="font-size:.78rem;color:#64748b;line-height:1.7;background:#f8faff;border-radius:10px;padding:14px;">
+                                <div style="font-weight:700;color:#4f46e5;margin-bottom:6px;">About These Metrics</div>
+                                <div><strong>ECE:</strong> Expected Calibration Error — gap between predicted confidence and actual accuracy.</div>
+                                <div style="margin-top:6px;"><strong>Brier Score:</strong> Mean squared error of probability predictions.</div>
+                                <div style="margin-top:6px;"><span id="calEvalInfo">—</span></div>
+                                <div><span id="calTempInfo">Temperature: —</span></div>
+                                <div><span id="calDateInfo">Evaluated: —</span></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div style="font-size:.72rem;color:#94a3b8;margin-top:8px;">Classifier confidence evaluated separately from LLM-generated explanations. Higher confidence does not imply clinical improvement.</div>
+                        </div>
+
+                        <!-- ── ROW 4: Prediction + Heatmap + Explanation ── -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                          <!-- Left: Prediction result -->
+                          <div style="display:flex;flex-direction:column;gap:16px;">
+                            <div class="res-card" style="margin-bottom:0;">
+                              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                <span style="font-size:.85rem;font-weight:600;color:var(--text-light)">Prediction Result</span>
+                                <span class="tag" id="predRisk">High Risk</span>
+                              </div>
+                              <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:10px;">
+                                <div id="predDisease" style="font-size:1.8rem;font-weight:800;color:var(--secondary);">—</div>
+                                <div id="confidenceText" style="font-size:1.4rem;font-weight:700;color:var(--primary);">0%</div>
+                              </div>
+                              <div style="background:#e2e8f0;border-radius:6px;height:8px;margin-bottom:14px;overflow:hidden;">
+                                <div id="confBar" style="height:100%;border-radius:6px;background:var(--primary);width:0%;transition:width 1.2s ease;"></div>
+                              </div>
+                              <div style="font-size:.8rem;font-weight:600;color:var(--text-light);margin-bottom:8px;">Probability Distribution</div>
+                              <div id="probBars" style="display:flex;flex-direction:column;gap:6px;"></div>
+                            </div>
+                            <!-- Heatmap -->
+                            <div class="res-card" style="margin-bottom:0;">
+                              <div style="font-size:.9rem;font-weight:700;color:var(--secondary);margin-bottom:4px;">Explainable AI Visualization</div>
+                              <div style="font-size:.78rem;color:var(--text-light);margin-bottom:12px;">Grad-CAM Saliency Map</div>
+                              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                  <div style="font-size:.75rem;color:var(--text-light);text-align:center;margin-bottom:6px;">Before</div>
+                                  <div style="border-radius:10px;overflow:hidden;background:#f1f5f9;height:130px;display:flex;align-items:center;justify-content:center;">
+                                    <img id="vizBeforeImg" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+                                    <span id="vizBeforePlaceholder" style="font-size:.75rem;color:#94a3b8">Upload image first</span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <div style="font-size:.75rem;color:var(--text-light);text-align:center;margin-bottom:6px;">After (Heatmap)</div>
+                                  <div style="border-radius:10px;overflow:hidden;background:#f1f5f9;height:130px;display:flex;align-items:center;justify-content:center;position:relative;">
+                                    <img id="vizAfterImg" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+                                    <canvas id="heatmapCanvas" style="position:absolute;inset:0;width:100%;height:100%;border-radius:10px;display:none;"></canvas>
+                                    <span id="vizAfterPlaceholder" style="font-size:.75rem;color:#94a3b8">Heatmap generated after analysis</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Right: Explanation + Treatment -->
+                          <div style="display:flex;flex-direction:column;gap:16px;">
+                            <div class="res-card" style="margin-bottom:0;">
+                              <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                <span style="font-size:.95rem;font-weight:700;color:var(--secondary);">AI Explanation &amp; Recommendations</span>
+                              </div>
+                              <div style="margin-bottom:12px;">
+                                <div style="font-size:.85rem;font-weight:700;color:var(--secondary);margin-bottom:5px;">Overview</div>
+                                <p id="explanationText" style="font-size:.84rem;color:var(--text-main);line-height:1.65;"></p>
+                              </div>
+                              <div style="margin-bottom:12px;">
+                                <div style="font-size:.85rem;font-weight:700;color:var(--secondary);margin-bottom:7px;">Diagnosis Details</div>
+                                <ul id="diagDetailsList" style="list-style:none;padding:0;display:flex;flex-direction:column;gap:5px;"></ul>
+                              </div>
+                              <div>
+                                <div style="font-size:.85rem;font-weight:700;color:var(--secondary);margin-bottom:7px;">Key Risk Factors</div>
+                                <div id="riskFactors" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                              </div>
+                            </div>
+                            <div class="res-card" style="margin-bottom:0;">
+                              <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                <span style="font-size:.95rem;font-weight:700;color:var(--secondary);">Recommended Treatment Plan</span>
+                              </div>
+                              <ul id="suggestionList" style="list-style:none;padding:0;display:flex;flex-direction:column;gap:10px;"></ul>
+                              <div style="margin-top:14px;padding:12px;background:#f0fdf4;border-radius:10px;border-left:3px solid #10b981;">
+                                <div style="font-size:.82rem;font-weight:700;color:#065f46;margin-bottom:4px;">Next Steps</div>
+                                <div id="nextSteps" style="font-size:.82rem;color:#047857;line-height:1.5;"></div>
+                              </div>
+                              <div style="margin-top:12px;padding:10px 12px;background:#fef3c7;border-radius:8px;border-left:3px solid #f59e0b;display:flex;gap:8px;align-items:flex-start;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" style="flex-shrink:0;margin-top:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                <span style="font-size:.78rem;color:#92400e;line-height:1.5;">This AI system is a decision-support tool and not a substitute for professional medical advice. Always consult a qualified dermatologist.</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:16px;">
+                          <button class="btn btn-outline" id="downloadReportBtn" style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download Report
+                          </button>
+                        </div>
+
                     </div><!-- end aiResultsPanel -->
 
                 </div><!-- end card -->
@@ -537,6 +793,90 @@
                     </div>
                     <div class="pagination"><span class="page-info">Showing 1 to 5 of 48 History records</span><div class="page-numbers"><button><</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>></button></div></div>
                 </div>
+            </div>
+
+            <!-- VIEW: PATIENT PROFILE -->
+            <div class="view-content" id="patient-profile-content" style="display:none;">
+              <div class="page-header">
+                <div><h2>Patient Profile</h2><p>Track patient visits, view history and compare reports.</p></div>
+              </div>
+
+              <!-- Search -->
+              <div class="card" style="padding:22px;margin-bottom:20px;">
+                <div style="display:flex;gap:12px;align-items:flex-end;">
+                  <div style="flex:1;">
+                    <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-light);margin-bottom:6px;">Search Patient (by name or ID)</label>
+                    <input type="text" id="ppSearchInput" class="form-control" placeholder="Type patient name or ID..." style="padding:12px 14px;border-radius:10px;">
+                    <div id="ppSearchResults" style="margin-top:8px;max-height:240px;overflow-y:auto;border-radius:8px;"></div>
+                  </div>
+                  <div>
+                    <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text-light);margin-bottom:6px;">Or enter Patient ID directly</label>
+                    <div style="display:flex;gap:8px;">
+                      <input type="text" id="ppDirectId" class="form-control" placeholder="e.g. P12345" style="padding:12px 14px;border-radius:10px;width:160px;">
+                      <button id="ppLoadBtn" class="btn btn-primary" style="white-space:nowrap;">Load Patient</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Patient Profile Card -->
+              <div id="ppProfileCard" style="display:none;">
+                <div class="card" style="padding:24px;margin-bottom:20px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                    <h3 style="font-size:1.1rem;font-weight:700;color:var(--secondary);">Patient Information</h3>
+                    <div style="display:flex;gap:8px;">
+                      <button id="ppCompareBtn" class="btn btn-outline" style="font-size:.82rem;display:none;">Compare Reports</button>
+                      <button id="ppNewDiagBtn" class="btn btn-primary" style="font-size:.82rem;">New Diagnosis</button>
+                      <button id="ppDownloadHistBtn" class="btn btn-outline" style="font-size:.82rem;">Download History</button>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+                    <div style="background:#f8faff;border-radius:10px;padding:14px;"><div style="font-size:.72rem;color:#64748b;font-weight:600;margin-bottom:4px;">PATIENT ID</div><div id="ppId" style="font-size:1rem;font-weight:700;color:#0f172a;">—</div></div>
+                    <div style="background:#f8faff;border-radius:10px;padding:14px;"><div style="font-size:.72rem;color:#64748b;font-weight:600;margin-bottom:4px;">NAME</div><div id="ppName" style="font-size:1rem;font-weight:700;color:#0f172a;">—</div></div>
+                    <div style="background:#f8faff;border-radius:10px;padding:14px;"><div style="font-size:.72rem;color:#64748b;font-weight:600;margin-bottom:4px;">AGE / GENDER</div><div id="ppAgeGender" style="font-size:1rem;font-weight:700;color:#0f172a;">—</div></div>
+                    <div style="background:#f0fdf4;border-radius:10px;padding:14px;"><div style="font-size:.72rem;color:#64748b;font-weight:600;margin-bottom:4px;">TOTAL VISITS</div><div id="ppVisits" style="font-size:1.4rem;font-weight:800;color:#059669;">—</div></div>
+                    <div style="background:#f8faff;border-radius:10px;padding:14px;"><div style="font-size:.72rem;color:#64748b;font-weight:600;margin-bottom:4px;">FIRST VISIT</div><div id="ppFirstVisit" style="font-size:.85rem;font-weight:600;color:#0f172a;">—</div></div>
+                    <div style="background:#f8faff;border-radius:10px;padding:14px;"><div style="font-size:.72rem;color:#64748b;font-weight:600;margin-bottom:4px;">LAST VISIT</div><div id="ppLastVisit" style="font-size:.85rem;font-weight:600;color:#0f172a;">—</div></div>
+                    <div style="background:#f8faff;border-radius:10px;padding:14px;"><div style="font-size:.72rem;color:#64748b;font-weight:600;margin-bottom:4px;">PREVIOUS DIAGNOSIS</div><div id="ppPrevDiag" style="font-size:.85rem;font-weight:600;color:#0f172a;">—</div></div>
+                    <div style="background:#f8faff;border-radius:10px;padding:14px;"><div style="font-size:.72rem;color:#64748b;font-weight:600;margin-bottom:4px;">CURRENT DIAGNOSIS</div><div id="ppCurrDiag" style="font-size:.85rem;font-weight:600;color:#0f172a;">—</div></div>
+                  </div>
+                </div>
+
+                <!-- Visit Timeline -->
+                <div class="card" style="padding:24px;margin-bottom:20px;">
+                  <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:16px;">Consultation History Timeline</h3>
+                  <div style="overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+                      <thead><tr style="border-bottom:2px solid #e2e8f0;">
+                        <th style="text-align:left;padding:10px 8px;color:#64748b;font-weight:600;">Visit #</th>
+                        <th style="text-align:left;padding:10px 8px;color:#64748b;font-weight:600;">Date</th>
+                        <th style="text-align:left;padding:10px 8px;color:#64748b;font-weight:600;">Image</th>
+                        <th style="text-align:left;padding:10px 8px;color:#64748b;font-weight:600;">Condition</th>
+                        <th style="text-align:left;padding:10px 8px;color:#64748b;font-weight:600;">Raw Conf.</th>
+                        <th style="text-align:left;padding:10px 8px;color:#64748b;font-weight:600;">Calib. Conf.</th>
+                        <th style="text-align:left;padding:10px 8px;color:#64748b;font-weight:600;">Risk</th>
+                        <th style="text-align:left;padding:10px 8px;color:#64748b;font-weight:600;">Action</th>
+                      </tr></thead>
+                      <tbody id="ppTimelineBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Comparison Panel -->
+                <div id="ppComparePanel" style="display:none;" class="card" style="padding:24px;margin-bottom:20px;">
+                  <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:16px;">Report Comparison: Previous vs Current</h3>
+                  <div id="ppCompareBody"></div>
+                  <div style="margin-top:16px;padding:12px;background:#fffbeb;border-radius:10px;border-left:3px solid #f59e0b;font-size:.78rem;color:#92400e;line-height:1.5;">
+                    <strong>Disclaimer:</strong> Changes in AI prediction or confidence scores do not indicate clinical improvement or worsening. Consult a dermatologist for medical assessment.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Empty state -->
+              <div id="ppEmpty" class="card" style="padding:60px;text-align:center;color:var(--text-light);">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" style="margin-bottom:12px;"><circle cx="12" cy="8" r="4"/><path d="M4 22c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+                <p>Search for a patient above to view their profile and visit history.</p>
+              </div>
             </div>
 
             <!-- VIEW: REPORTS — Generate Report -->
@@ -661,7 +1001,8 @@
                           <table style="flex:1;border-collapse:collapse;font-size:.83rem">
                             <tr><td style="padding:4px 0;color:var(--text-light);width:140px">Diagnosis</td><td style="padding:4px 0">: <span id="rptDDisease" style="font-weight:600">—</span></td></tr>
                             <tr><td style="padding:4px 0;color:var(--text-light)">Detected On</td><td style="padding:4px 0">: <span id="rptDDate">—</span></td></tr>
-                            <tr><td style="padding:4px 0;color:var(--text-light)">AI Confidence Score</td><td style="padding:4px 0">: <span id="rptDConf" style="font-weight:700;color:#10b981">—</span></td></tr>
+                            <tr><td style="padding:4px 0;color:var(--text-light)">Raw Confidence</td><td style="padding:4px 0">: <span id="rptDConf" style="font-weight:700;color:#10b981">—</span></td></tr>
+                            <tr><td style="padding:4px 0;color:var(--text-light)">Calibrated Confidence</td><td style="padding:4px 0">: <span id="rptDCalConf" style="font-weight:700;color:#4f46e5">—</span></td></tr>
                             <tr><td style="padding:4px 0;color:var(--text-light)">Severity Level</td><td style="padding:4px 0">: <span id="rptDRisk" style="font-weight:600">—</span></td></tr>
                           </table>
                         </div>
